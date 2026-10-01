@@ -1,0 +1,10 @@
+import { writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { Canvas, uuid, hash } from './author-art.mjs';
+const dir=new URL('./pokemon-imports/',import.meta.url);
+const png=new Canvas(16,16,4).png();
+const meta={_resourceType:'sprite',id:uuid('kanto:logic'),name:'Logic Anchor',symbol:'sprite_logic_anchor',filename:'kanto-logic.png',width:16,height:16,checksum:createHash('sha1').update(png).digest('hex'),numTiles:0,canvasOriginX:0,canvasOriginY:0,canvasWidth:16,canvasHeight:16,boundsX:0,boundsY:0,boundsWidth:16,boundsHeight:8,animSpeed:15,states:[{id:uuid('kanto:logic:state'),name:'',animationType:'fixed',flipLeft:false,animations:Array.from({length:8},(_,i)=>({id:uuid('kanto:logic:animation:'+i),frames:[{id:uuid('kanto:logic:frame:'+i),tiles:[]}]}))}]};
+const json=Buffer.from(JSON.stringify(meta,null,2));
+await writeFile(new URL('logic.png',dir),png,{flag:'wx'});
+await writeFile(new URL('logic.json',dir),json,{flag:'wx'});
+console.log(JSON.stringify({sourceSha256:hash(png),metadataSha256:hash(json)}));
