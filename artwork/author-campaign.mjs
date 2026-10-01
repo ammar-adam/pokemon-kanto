@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { Canvas,MapArt,text,uuid,hash } from './author-art.mjs';
-import { world,additionalSpecies } from './campaign-world.mjs';
+import { world,additionalSpecies,legacyAdditionalSpecies } from './campaign-world.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const base=JSON.parse(await readFile(path.join(root,'artwork/pokemon-asset-plan.json'),'utf8'));
 const out=path.join(root,'artwork/campaign-imports');
@@ -55,7 +55,7 @@ function border(m){m.edges();for(let x=0;x<m.w;x+=2){if(x<14||x>16)m.tree(x,0);i
 function sign(m,label){m.c.rect(32,112,Math.min(192,label.length*6+8),10,3);text(m.c,label,36,113);m.paint(4,14,Math.min(24,Math.ceil((label.length*6+8)/8)),2,1);}
 function town(spec){
   const m=new Region(32,26);border(m);m.area(14,3,4,20,'path',1);m.area(2,15,28,3,'path',1);
-  m.house(4,6,8,7,spec.key==='fernvale'?'OAK LAB':'CENTER');m.house(21,6,8,7,spec.key==='fernvale'?'RED HOME':spec.key==='lavender'?'TOWER':'GYM');
+  m.house(4,6,8,7,spec.key==='fernvale'?'OAK LAB':({saffron:'SILPH',fuchsia:'SAFARI',cinnabar:'FOSSIL LAB'}[spec.key]||'CENTER'));m.house(21,6,8,7,spec.key==='fernvale'?'RED HOME':spec.key==='lavender'?'TOWER':spec.key==='indigo'?'LEAGUE':'GYM');
   m.area(3,19,8,4,'flower',4);m.area(22,19,6,4,'water',3,15);
   if(spec.key==='cerulean'){m.area(2,3,10,2,'water',3,15);m.area(20,3,10,2,'water',3,15);}
   if(spec.key==='vermilion'){m.area(20,18,10,6,'water',3,15);m.area(20,19,8,2,'path',2,0);text(m.c,'PORT',169,153);}
@@ -68,6 +68,12 @@ function landscape(spec){
   for(const [x,y,w,h]of [[4,5,8,7],[20,5,8,7],[4,19,8,9],[20,19,8,9]])m.area(x,y,w,h,'grass',0);
   if(spec.kind==='forest'){for(const [x,y]of [[8,8],[22,8],[8,22],[24,24],[4,19],[20,18]])m.tree(x,y);}
   if(spec.kind==='bridge'){m.area(1,3,12,26,'water',3,15);m.area(19,3,12,26,'water',3,15);m.area(14,3,4,26,'floor',2);for(let y=3;y<29;y+=2){m.cell(13,y,'stone',2,0,15);m.cell(18,y,'stone',2,0,15);}m.area(3,25,8,3,'grass',0,0);m.area(20,25,8,3,'grass',0,0);}
+  if(['route_nineteen','route_twenty_one'].includes(spec.key)){
+    m.area(2,3,28,26,'water',3,0);
+    m.area(4,9,6,5,'path',1,0);m.area(22,21,6,5,'path',1,0);
+    m.tree(6,10);m.tree(24,22);
+  }
+  if(spec.key==='cycling_road'){for(let y=4;y<29;y+=4){m.c.rect(123,y*8,2,12,2);m.c.rect(139,y*8,2,12,2);}}
   sign(m,spec.name);return m;
 }
 function cave(spec){
@@ -76,6 +82,11 @@ function cave(spec){
   m.area(14,0,4,32,'path',1,0);m.area(2,15,28,3,'path',1,0);
   for(const [x,y]of [[3,12],[26,12],[8,27],[24,3]]){m.c.rect(x*8+2,y*8+1,5,6,0);m.c.line(x*8+3,y*8+2,x*8+3,y*8+5,3);m.paint(x,y,1,1,3);}
   if(spec.kind==='hideout'){m.area(6,18,6,2,'floor',2);for(let x=6;x<12;x++){m.c.line(x*8+1,147,x*8+6,151,0);m.c.line(x*8+6,151,x*8+1,155,0);}m.area(14,5,4,3,'floor',2);text(m.c,'R',122,43);}
+  if(spec.key.startsWith('pokemon_tower')||spec.key==='tower_summit'){
+    for(const x of [4,8,21,25])for(const y of [5,11,21,25]){m.area(x,y,2,2,'stone',6,15);m.c.rect(x*8+6,y*8+3,3,10,0);m.c.rect(x*8+3,y*8+6,9,3,0);}
+  }
+  if(spec.key.startsWith('silph_')){m.area(4,6,7,4,'floor',3,15);m.area(21,6,7,4,'floor',3,15);for(const x of [5,8,22,25]){m.c.rect(x*8,55,12,9,0);m.c.rect(x*8+1,56,10,6,3);}m.area(14,20,4,2,'floor',4,0);}
+  if(spec.key.startsWith('seafoam')){for(const [x,y]of [[4,6],[21,6],[4,21],[21,21]])m.area(x,y,7,4,'water',3,15);}
   sign(m,spec.name);return m;
 }
 function room(spec){
@@ -93,11 +104,11 @@ for(let y=0;y<144;y+=8){titleArt.line(0,y,159,y,2);for(let x=(y/8)%2?4:0;x<160;x
 titleArt.rect(8,8,144,43,1);titleArt.rect(10,10,140,39,3);
 text(titleArt,'POKEMON',39,14,0,2);
 text(titleArt,'KANTO',50,35,0);
-for(let i=0;i<4;i++){const x=23+i*36;titleArt.oval(x-7,59,30,30,0);titleArt.oval(x-5,61,26,26,2);titleArt.oval(x+2,68,12,12,1);titleArt.line(x-7,74,x+23,74,0);titleArt.rect(x+5,71,6,6,0);titleArt.rect(x+7,73,2,2,3);}
-titleArt.line(12,96,147,96,0);text(titleArt,'FOUR BADGES',47,103,0);
-const titleSource='artwork/campaign-imports/title-four-badges.png';
+for(let i=0;i<8;i++){const x=5+i*19;titleArt.oval(x,65,17,17,0);titleArt.oval(x+2,67,13,13,2);titleArt.line(x,73,x+16,73,0);titleArt.rect(x+6,71,5,5,0);titleArt.dot(x+8,73,3);}
+titleArt.line(12,96,147,96,0);text(titleArt,'CHAMPION QUEST',38,103,0);
+const titleSource='artwork/campaign-imports/title-complete.png';
 await writeFile(path.join(root,titleSource),titleArt.png());
-manifest.backgrounds.push({key:'title_four_badges',name:'Pokemon Kanto Four Badges',id:'52993893-35d3-5bfd-aecd-4d73d4aff97c',sceneId:'12f07015-0a42-504a-8d39-3f689e13ad3a',sourcePath:titleSource,assetPath:'assets/backgrounds/campaign-title-four-badges.png',width:20,height:18,paletteKeys:['canopy','paving','coral','blue'],paletteEdits:[{x:0,y:0,width:20,height:18,slot:1},{x:1,y:1,width:18,height:5,slot:2},{x:0,y:7,width:20,height:6,slot:3}]});
+manifest.backgrounds.push({key:'title_complete',name:'Pokemon Kanto Champion Quest',id:uuid('campaign:background:title-complete'),sceneId:'12f07015-0a42-504a-8d39-3f689e13ad3a',sourcePath:titleSource,assetPath:'assets/backgrounds/campaign-title-complete.png',width:20,height:18,paletteKeys:['canopy','paving','coral','blue'],paletteEdits:[{x:0,y:0,width:20,height:18,slot:1},{x:1,y:1,width:18,height:5,slot:2},{x:0,y:7,width:20,height:6,slot:3}]});
 // Authored native 32x32 cells, with front and rear views kept on one 64x32 sheet.
 function creature(index,back=false){
   const c=new Canvas(32,32,4),oval=(x,y,w,h,col=2)=>{c.oval(x,y,w,h,0);c.oval(x+1,y+1,w-2,h-2,col);};
@@ -115,7 +126,7 @@ function creature(index,back=false){
   if(![3,4].includes(index)){if(!back){c.rect(10,17,2,3,0);c.rect(20,17,2,3,0);c.dot(10,17,3);c.dot(20,17,3);c.line(13,23,17,23,0);}else{c.line(9,19,21,18,3);c.line(12,24,18,24,0);}}
   return c;
 }
-for(const [i,species]of additionalSpecies.entries()){
+for(const [i,species]of legacyAdditionalSpecies.entries()){
   const key=species.key,c=new Canvas(64,32,4);c.blit(creature(i),0,0,4);c.blit(creature(i,true),32,0,4);
   const sourcePath=`artwork/campaign-imports/${key}.png`,assetPath=`assets/sprites/kanto-${key}-centered.png`,bytes=c.png();await writeFile(path.join(root,sourcePath),bytes);
   const template=JSON.parse(await readFile(path.join(root,'artwork/pokemon-imports/charmander-centered.json'),'utf8'));
@@ -136,9 +147,16 @@ function person(kind){
   if(kind==='rocket'){c.rect(3,0,10,4,0);c.rect(4,1,8,2,2);c.rect(4,8,8,6,0);c.rect(6,9,4,3,3);c.dot(7,10,0);c.dot(8,11,0);}
   if(kind==='catcher'){c.rect(2,1,12,4,0);c.rect(3,2,10,2,2);c.line(13,7,15,0,0);c.line(11,1,15,2,0);c.rect(5,9,6,3,3);}
   if(kind==='sailor'){c.rect(3,0,10,4,3);c.rect(3,2,10,1,0);c.rect(4,8,8,6,3);c.rect(7,8,2,6,0);c.rect(4,13,8,1,0);}
+  if(kind==='koga'){c.rect(3,0,10,4,0);c.line(3,0,8,3,2);c.rect(5,8,6,5,0);c.line(5,8,10,12,2);c.rect(3,5,3,2,2);}
+  if(kind==='sabrina'){c.rect(3,0,10,13,0);c.rect(5,3,6,5,3);c.rect(5,8,6,5,2);c.rect(3,11,2,3,0);c.rect(11,11,2,3,0);}
+  if(kind==='blaine'){c.rect(4,0,8,4,3);c.rect(4,4,8,2,0);c.rect(5,4,2,1,3);c.rect(9,4,2,1,3);c.rect(6,6,4,2,3);c.rect(3,8,10,6,3);c.rect(7,9,2,5,0);}
+  if(kind==='lorelei'){c.rect(3,0,10,6,2);c.rect(3,4,2,8,2);c.rect(11,4,2,8,2);c.rect(5,4,6,3,3);c.rect(5,5,6,1,0);c.rect(4,9,8,5,0);c.rect(5,10,6,3,2);}
+  if(kind==='bruno'){c.rect(4,0,8,3,0);c.rect(3,8,10,5,3);c.rect(5,10,6,1,0);c.rect(4,13,8,3,2);c.rect(7,13,2,3,0);}
+  if(kind==='agatha'){c.rect(3,0,10,4,3);c.rect(4,1,8,2,2);c.rect(3,8,9,6,0);c.rect(4,9,7,4,2);c.line(14,7,14,15,0);c.rect(12,7,3,1,0);}
+  if(kind==='lance'){c.rect(3,0,10,4,2);c.line(3,0,7,2,0);c.rect(2,8,12,7,0);c.rect(3,9,10,5,2);c.rect(6,8,4,5,3);c.rect(7,8,2,3,0);}
   c.dot(6,5,0);c.dot(10,5,0);return c;
 }
-for(const key of ['misty','surge','erika','giovanni','rocket','catcher','sailor']){
+for(const key of ['misty','surge','erika','giovanni','rocket','catcher','sailor','koga','sabrina','blaine','lorelei','bruno','agatha','lance']){
   const sourcePath=`artwork/campaign-imports/trainer-${key}.png`,assetPath=`assets/sprites/trainer-${key}.png`,bytes=person(key).png();await writeFile(path.join(root,sourcePath),bytes);
   manifest.sprites.push({key:'trainer-'+key,sourcePath,assetPath,profile:'static16x16',sourceSha256:hash(bytes)});
 }

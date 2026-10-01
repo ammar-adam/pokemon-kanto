@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+export const roster=JSON.parse(readFileSync(new URL('./roster.json',import.meta.url),'utf8'));
+export const dexId=dex=>{const found=roster.find(p=>p.dex===dex);if(!found)throw new Error('Unknown dex '+dex);return found.index;};
 export const world = [
   {key:'fernvale',name:'PALLET TOWN',kind:'town',theme:'coral'},
   {key:'route_one',name:'ROUTE ONE',kind:'route',level:4,encounters:[8,10]},
@@ -25,7 +28,7 @@ export const world = [
   {key:'vermilion_gym',name:'VERMILION GYM',kind:'gym',theme:'gold'},
   {key:'celadon_gym',name:'CELADON GYM',kind:'gym',theme:'pink'}
 ];
-export const additionalSpecies = [
+export const legacyAdditionalSpecies = [
   {key:'caterpie',name:'CATERPIE',type:'BUG',palette:'bulbasaur',dex:10,moves:['TACKLE','BUG BITE','STRING SHOT','HARDEN']},
   {key:'rattata',name:'RATTATA',type:'NORMAL',palette:'zubat',dex:19,moves:['QUICK ATTACK','HYPER FANG','TAIL WHIP','FOCUS ENERGY']},
   {key:'clefairy',name:'CLEFAIRY',type:'NORMAL',palette:'charmander',dex:35,moves:['POUND','DOUBLE SLAP','GROWL','MINIMIZE']},
@@ -39,6 +42,55 @@ export const additionalSpecies = [
   {key:'butterfree',name:'BUTTERFREE',type:'BUG',palette:'zubat',dex:12,moves:['TACKLE','CONFUSION','GUST','SUPERSONIC']},
   {key:'beedrill',name:'BEEDRILL',type:'BUG',palette:'pikachu',dex:15,moves:['FURY ATTACK','TWINEEDLE','FOCUS ENERGY','AGILITY']}
 ];
+export const additionalSpecies=roster.slice(8);
+const encounters=(...dex)=>dex.map(dexId);
+world.push(
+  {key:'pokemon_tower',name:'POKEMON TOWER',kind:'cave',theme:'violet',level:27,encounters:encounters(92,93,104)},
+  {key:'tower_summit',name:'TOWER SUMMIT',kind:'hideout',theme:'violet'},
+  {key:'route_twelve',name:'ROUTE TWELVE',kind:'bridge',level:29,encounters:encounters(69,70,48,49,83)},
+  {key:'cycling_road',name:'CYCLING ROAD',kind:'route',level:30,encounters:encounters(21,22,84,85,77)},
+  {key:'fuchsia',name:'FUCHSIA CITY',kind:'town',theme:'gold'},
+  {key:'fuchsia_gym',name:'FUCHSIA GYM',kind:'gym',theme:'violet'},
+  {key:'safari_gate',name:'SAFARI LODGE',kind:'room'},
+  {key:'safari_west',name:'SAFARI WEST',kind:'forest',level:28,encounters:encounters(29,32,111,115,128,102,123)},
+  {key:'safari_east',name:'SAFARI EAST',kind:'forest',level:30,encounters:encounters(46,47,48,114,127,113,147)},
+  {key:'safari_lake',name:'SAFARI LAKE',kind:'route',level:31,encounters:encounters(54,79,118,119,129,60)},
+  {key:'saffron',name:'SAFFRON CITY',kind:'town',theme:'gold'},
+  {key:'saffron_gym',name:'SAFFRON GYM',kind:'gym',theme:'pink'},
+  {key:'fighting_dojo',name:'FIGHTING DOJO',kind:'gym',theme:'stone'},
+  {key:'silph_lobby',name:'SILPH LOBBY',kind:'hideout',theme:'blue'},
+  {key:'silph_floor',name:'SILPH RESEARCH',kind:'hideout',theme:'blue'},
+  {key:'silph_office',name:'SILPH OFFICE',kind:'hideout',theme:'blue'},
+  {key:'route_nineteen',name:'SEA ROUTE',kind:'route',theme:'blue',level:35,encounters:encounters(72,73,86,90,98,116)},
+  {key:'seafoam',name:'SEAFOAM ISLANDS',kind:'cave',theme:'blue',level:38,encounters:encounters(86,87,90,91,124)},
+  {key:'seafoam_depths',name:'SEAFOAM DEPTHS',kind:'cave',theme:'blue',level:40,encounters:encounters(87,91,124)},
+  {key:'cinnabar',name:'CINNABAR ISLAND',kind:'town',theme:'coral'},
+  {key:'cinnabar_lab',name:'CINNABAR LAB',kind:'lab'},
+  {key:'mansion',name:'POKEMON MANSION',kind:'hideout',theme:'coral',level:38,encounters:encounters(37,58,77,88,109,126)},
+  {key:'mansion_depths',name:'MANSION CELLAR',kind:'hideout',theme:'coral',level:40,encounters:encounters(89,110,132,126)},
+  {key:'cinnabar_gym',name:'CINNABAR GYM',kind:'gym',theme:'coral'},
+  {key:'route_twenty_one',name:'ROUTE TWENTY ONE',kind:'route',theme:'blue',level:38,encounters:encounters(61,62,80,99,117,130)},
+  {key:'viridian_gym',name:'VIRIDIAN GYM',kind:'gym',theme:'stone'},
+  {key:'route_twenty_two',name:'ROUTE TWENTY TWO',kind:'route',level:42,encounters:encounters(56,57,23,24,35)},
+  {key:'victory_road',name:'VICTORY ROAD',kind:'cave',level:44,encounters:encounters(67,75,95,105)},
+  {key:'victory_summit',name:'VICTORY SUMMIT',kind:'cave',level:47,encounters:encounters(67,75,95,105)},
+  {key:'indigo',name:'INDIGO PLATEAU',kind:'town',theme:'blue'},
+  {key:'lorelei',name:'LORELEI',kind:'gym',theme:'blue'},
+  {key:'bruno',name:'BRUNO',kind:'gym',theme:'stone'},
+  {key:'agatha',name:'AGATHA',kind:'gym',theme:'violet'},
+  {key:'lance',name:'LANCE',kind:'gym',theme:'coral'},
+  {key:'champion_room',name:'CHAMPION',kind:'gym',theme:'gold'},
+  {key:'hall_of_fame',name:'HALL OF FAME',kind:'room'},
+  {key:'power_plant',name:'POWER PLANT',kind:'hideout',theme:'gold',level:36,encounters:encounters(81,82,100,101,125)},
+  {key:'cerulean_cave',name:'CERULEAN CAVE',kind:'cave',theme:'violet',level:60,encounters:encounters(64,97,112,115,113,132)},
+  {key:'secret_garden',name:'OAKS RESERVE',kind:'forest',level:50,encounters:encounters(1,4,7,133,106,107,137,138,140,142)}
+);
+// Complete each regional pool with base forms and version-exclusive species.
+world.find(s=>s.key==='route_three').encounters.push(...encounters(21,23,27,29,32,39));
+world.find(s=>s.key==='route_five').encounters.push(...encounters(52,56,63,66));
+world.find(s=>s.key==='route_eight').encounters.push(...encounters(37,58,69,96,108));
+world.find(s=>s.key==='rock_tunnel').encounters.push(...encounters(74,95,104));
+world.find(s=>s.key==='route_nine').encounters.push(...encounters(50));
 export const bossTeams = {
   1:{name:'BROCK',team:[[5,8,46],[7,10,60]],badge:12},
   4:{name:'MISTY',team:[[12,18,80],[13,21,100]],badge:150},
@@ -65,3 +117,34 @@ export const bossTeams = {
   27:{name:'TUNNEL HIKER',team:[[6,22,96],[7,23,100]],flag:178},
   28:{name:'ROUTE LASS',team:[[11,25,108],[20,26,112]],flag:179}
 };
+const team=(...pairs)=>pairs.map(([dex,level])=>[dexId(dex),level,level*4+24]);
+Object.assign(bossTeams,{
+  29:{name:'KOGA',team:team([109,37],[89,39],[110,43]),badge:180},
+  30:{name:'SABRINA',team:team([64,38],[122,37],[49,38],[65,43]),badge:181},
+  31:{name:'BLAINE',team:team([58,42],[77,40],[78,42],[59,47]),badge:182},
+  32:{name:'GIOVANNI',team:team([111,45],[51,42],[31,44],[34,45],[112,50]),badge:183},
+  33:{name:'GIOVANNI',team:team([33,37],[115,35],[111,37],[31,41]),flag:190},
+  34:{name:'TOWER ROCKET',team:team([24,28],[42,30],[110,31]),flag:197},
+  35:{name:'BLUE',team:team([18,37],[58,35],[102,35],[65,38],[9,40]),flag:210},
+  36:{name:'KARATE MASTER',team:team([106,37],[107,37]),flag:201},
+  37:{name:'LORELEI',team:team([87,54],[91,53],[80,54],[124,56],[131,56]),flag:221,leagueStep:1},
+  38:{name:'BRUNO',team:team([95,53],[107,55],[106,55],[95,56],[68,58]),flag:222,leagueStep:2},
+  39:{name:'AGATHA',team:team([94,56],[42,56],[93,55],[24,58],[94,60]),flag:223,leagueStep:3},
+  40:{name:'LANCE',team:team([130,58],[148,56],[148,56],[142,60],[149,62]),flag:224,leagueStep:4},
+  41:{name:'CHAMPION BLUE',team:team([18,61],[65,59],[112,61],[103,61],[59,63],[9,65]),flag:196,leagueStep:5},
+  42:{name:'BLUE',team:team([18,47],[111,45],[58,45],[102,47],[65,50],[9,53]),flag:211},
+  43:{name:'BIKER',team:team([109,30],[88,30],[110,32]),flag:230},
+  44:{name:'BIRD KEEPER',team:team([22,29],[84,31],[85,33]),flag:231},
+  45:{name:'PSYCHIC',team:team([64,34],[96,33],[97,36]),flag:232},
+  46:{name:'ROCKET SCIENTIST',team:team([81,34],[100,35],[82,37]),flag:233},
+  47:{name:'ROCKET CAPTAIN',team:team([24,36],[42,37],[89,38]),flag:234},
+  48:{name:'SWIMMER',team:team([73,35],[117,36],[91,37]),flag:235},
+  49:{name:'BURGLAR',team:team([37,37],[58,38],[126,40]),flag:236},
+  50:{name:'COOLTRAINER',team:team([67,43],[112,44],[106,45]),flag:237},
+  51:{name:'ACE TRAINER',team:team([65,47],[59,46],[130,48]),flag:238},
+  52:{name:'SAFARI RANGER',team:team([123,33],[127,33],[128,35]),flag:239},
+  53:{name:'FISHERMAN',team:team([119,29],[99,30],[130,32]),flag:240},
+  54:{name:'TAMER',team:team([24,35],[28,36],[115,38]),flag:241},
+  55:{name:'CHANNELER',team:team([92,27],[93,29]),flag:242},
+  56:{name:'ENGINEER',team:team([82,36],[101,37],[125,39]),flag:243}
+});

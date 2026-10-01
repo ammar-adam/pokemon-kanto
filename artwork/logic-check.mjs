@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { decodeResourceBytes } from '../scripts/resource-bytes.mjs';
-import { bossTeams,world } from './campaign-world.mjs';
+import { bossTeams,world,roster,dexId } from './campaign-world.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const plan=JSON.parse(await readFile(path.join(root,'artwork/game-plan.json'),'utf8'));
@@ -13,7 +13,8 @@ await walk(path.join(root,'project'));
 const byId=Object.fromEntries(resources.filter(r=>r.id).map(r=>[r.id,r]));
 function effective(events){return events.map(e=>({...e,args:e.command==='EVENT_IF'?{condition:e.args.condition}:e.args,children:Object.fromEntries(Object.entries(e.children||{}).map(([key,list])=>[key,effective(list)]))}));}
 for(const s of plan.scripts){const owner=byId[s.target.actorId||s.target.triggerId||s.target.sceneId];assert.ok(owner,'script owner exists');assert.deepEqual(effective(owner[s.target.scriptKey]),effective(s.events),'native script matches authored plan');}
-const named=Object.fromEntries(plan.actors.map(a=>[a.name,byId[a.id]]));
+for(const s of plan.customScripts||[])assert.deepEqual(effective(byId[s.id]?.script||[]),effective(s.script),'native shared script matches authored plan');
+const named=plan.actors.reduce((all,a)=>{all[a.name]??=byId[a.id];return all;},{});
 const scenes=Object.fromEntries(resources.filter(r=>r._resourceType==='scene').map(r=>[r.name,r]));
 const results=[];
 function test(name,fn){fn();results.push({name,passed:true});console.log('PASS '+name);}
@@ -31,7 +32,7 @@ class Logic {
   }
   expression(e){const safe=e.replace(/\$(\d+)\$/g,(_,id)=>String(this.get(id)));assert.match(safe,/^[\d\s<>=!&|()+\-*/%.]+$/);return Function('return ('+safe+')')();}
   body(events){const labels=Object.fromEntries(events.flatMap((e,i)=>e.command==='EVENT_DEFINE_LABEL'?[[e.args.label,i]]:[]));for(let i=0;i<events.length;i++){try{this.event(events[i]);}catch(e){if(e instanceof Halt && e.kind==='goto' && labels[e.args]!==undefined)i=labels[e.args];else throw e;}}}
-  event(e){assert.ok(++this.steps<12000,'bounded event execution');const a=e.args||{};this.trace.push(e.command);switch(e.command){
+  event(e){assert.ok(++this.steps<100000,'bounded event execution');const a=e.args||{};this.trace.push(e.command);switch(e.command){
     case 'EVENT_SET_VALUE':this.v[a.variable]=this.val(a.value);break;
     case 'EVENT_RESET_VARIABLES':this.v={};break;
     case 'EVENT_VARIABLE_MATH':{const current=this.get(a.vectorX);let other=a.other==='var'?this.get(a.vectorY):a.value;
@@ -42,6 +43,7 @@ class Logic {
     case 'EVENT_IF':this.body(e.children[this.val(a.condition)?'true':'false']||[]);break;
     case 'EVENT_MENU':{assert.ok(this.choices.length,'expected a supplied menu choice');const choice=this.choices.shift();assert.ok(choice>=0 && choice<=a.items);this.v[a.variable]=choice;break;}
     case 'EVENT_ACTOR_INVOKE':this.body(byId[a.actorId].script);break;
+    case 'EVENT_CALL_CUSTOM_EVENT':assert.ok(byId[a.customEventId],'shared script exists');this.body(byId[a.customEventId].script);break;
     case 'EVENT_GOTO_LABEL':throw new Halt('goto',a.label);
     case 'EVENT_SWITCH_SCENE':throw new Halt('switch',a);
     case 'EVENT_SCENE_POP_STATE':throw new Halt('pop',a);
@@ -58,8 +60,8 @@ test('New game initializes level, HP, inventory and lab arrival',()=>{const l=ne
 test('New game clears a prior collection and badge',()=>{const l=new Logic({12:1,30:1,31:1,32:1,10:3},[1]);l.run(scenes.Title.script);assert.equal(l.get(12),0);assert.equal(l.get(30),0);assert.equal(l.get(31),0);assert.equal(l.get(10),0);});
 test('Continue loads an existing journal without starting a new game',()=>{const l=new Logic({},[2]);l.saved={...base,12:1};assert.equal(l.run(scenes.Title.script).kind,'load');assert.equal(l.get(12),1);assert.equal(l.get(31),1);});
 test('All three starters have individual level, HP, PP and a party slot',()=>{for(let starter=1;starter<=3;starter++){const l=new Logic({0:5,2:44},[starter]);l.run(named['Professor Oak'].script);assert.equal(l.get(1),starter);assert.equal(l.get(29+starter),1);assert.equal(l.get(39+starter),44);assert.equal(l.get(49+starter),1);assert.equal(l.get(59+starter),5);assert.equal(l.get(100+(starter-1)*4),35);assert.equal(l.get(10),1);assert.equal(l.get(25),1);}});
-test('Tackle, elemental advantage, resistance and HP clamping',()=>{let l=new Logic({...base,14:1});l.run(named.ATTACK.script);assert.equal(l.get(5),19);l=new Logic({...base,14:2});l.run(named.ATTACK.script);assert.equal(l.get(16),26);assert.equal(l.get(5),2);l=new Logic({...base,4:2,5:3,14:2});l.run(named.ATTACK.script);assert.equal(l.get(16),6);assert.equal(l.get(5),0);});
-test('Guard halves one hit and stores individual party HP',()=>{const l=new Logic({...base,17:1},[],[1]);l.run(named.COUNTER.script);assert.equal(l.get(3),32);assert.equal(l.get(41),32);assert.equal(l.get(17),0);});
+test('Tackle, elemental advantage, dual-type resistance and HP clamping',()=>{let l=new Logic({...base,14:1});l.run(named.ATTACK.script);assert.equal(l.get(5),19);l=new Logic({...base,14:2});l.run(named.ATTACK.script);assert.equal(l.get(16),26);assert.equal(l.get(5),2);l=new Logic({...base,4:2,5:3,14:2});l.run(named.ATTACK.script);assert.equal(l.get(16),3);assert.equal(l.get(5),0);});
+test('Water resistance and Guard reduce one hit and store party HP',()=>{const l=new Logic({...base,17:1},[],[1]);l.run(named.COUNTER.script);assert.equal(l.get(3),34);assert.equal(l.get(41),34);assert.equal(l.get(17),0);});
 test('Low-HP catch is guaranteed and adds a species once',()=>{let l=new Logic({...base,4:4,5:9},[1],[100]);assert.equal(l.run(named.BAG.script).kind,'pop');assert.equal(l.get(33),1);assert.equal(l.get(43),36);assert.equal(l.get(10),2);assert.equal(l.get(8),5);l=new Logic({...base,4:4,5:9,33:1,10:2},[1],[100]);l.run(named.BAG.script);assert.equal(l.get(10),2);});
 test('Full-HP catch boundary succeeds at 35 and fails at 36',()=>{for(const roll of [35,36]){const l=new Logic({...base,4:4},[1],[roll]);const end=l.run(named.BAG.script);assert.equal(end?.kind==='pop',roll===35);assert.equal(l.get(18),1);assert.equal(l.get(8),5);}});
 test('Mid-HP catch boundary succeeds at 75 and fails at 76',()=>{for(const roll of [75,76]){const l=new Logic({...base,4:4,5:14},[1],[roll]);const end=l.run(named.BAG.script);assert.equal(end?.kind==='pop',roll===75);}});
@@ -126,6 +128,73 @@ test('Forest trainers and later route trainers use distinct teams and win flags'
 test('Paged PC menu reaches new species and keeps party and box counts consistent',()=>{
   const l=new Logic({...base,400:1,401:56,402:0,403:8,25:1},[8,2]);l.run(named['Bills PC'].script);
   assert.equal(l.get(402),1);assert.equal(l.get(25),2);
+});
+const pokemonVars=(dex,level=30)=>{const i=dexId(dex)-1;return i<8?{id:i+1,own:30+i,hp:40+i,member:50+i,level:60+i,xp:70+i,retired:80+i}:{id:i+1,own:400+(i-8)*10,hp:401+(i-8)*10,member:402+(i-8)*10,level:403+(i-8)*10,xp:404+(i-8)*10,retired:409+(i-8)*10};};
+const partner=(dex,level)=>{const p=pokemonVars(dex);return {1:p.id,0:level,2:level*4+24,3:level*4+24,25:1,10:1,[p.own]:1,[p.hp]:level*4+24,[p.member]:1,[p.level]:level};};
+test('All 151 species have an encounter, gift, or reachable evolution path',()=>{
+  assert.equal(roster.length,151);assert.equal(new Set(roster.map(p=>p.dex)).size,151);
+  const reachable=new Set([...world.flatMap(s=>s.encounters||[]),...[1,4,7,106,107,122,131,133,138,140,142,143,144,145,146,150,151].map(dexId)]);
+  let changed=true;while(changed){changed=false;for(const p of roster)if(reachable.has(p.index))for(const e of p.evolutions)if(!reachable.has(e.to)){reachable.add(e.to);changed=true;}}
+  assert.equal(reachable.size,151,roster.filter(p=>!reachable.has(p.index)).map(p=>p.name).join(', '));
+});
+test('Level evolution preserves the party slot, level and Pokedex history',()=>{
+  const from=pokemonVars(10),to=pokemonVars(11),l=new Logic({...partner(10,6),[from.xp]:11,7:1});
+  l.run(named['GAIN-XP'].script);
+  assert.equal(l.get(1),to.id);assert.equal(l.get(to.level),7);assert.equal(l.get(to.hp),52);
+  assert.equal(l.get(from.member),0);assert.equal(l.get(from.retired),1);assert.equal(l.get(from.own),1);
+  assert.equal(l.get(to.member),1);assert.equal(l.get(25),1);assert.equal(l.get(10),2);
+});
+test('Evolved ancestors cannot be withdrawn, but can be caught again',()=>{
+  const from=pokemonVars(10),l=new Logic({...base,[from.own]:1,[from.retired]:1,10:2},[8,2]);
+  l.run(named['Bills PC'].script);assert.equal(l.get(from.member),0);assert.equal(l.get(25),1);
+  l.choices=[1];l.rolls=[100];l.v[4]=from.id;l.v[5]=1;l.v[6]=40;l.v[7]=6;
+  assert.equal(l.run(named.BAG.script).kind,'pop');assert.equal(l.get(from.retired),0);assert.equal(l.get(from.member),1);assert.equal(l.get(10),2);
+});
+test('Water, thunder and fire stones give the chosen Eevee evolution',()=>{
+  for(const [method,dex]of [[1,134],[2,135],[3,136]]){const l=new Logic(partner(133,25),[method]);l.run(named['Evolution Expert'].script);assert.equal(l.get(1),dexId(dex));assert.equal(l.get(25),1);}
+});
+test('The local trade service evolves Kadabra without deleting collection history',()=>{
+  const l=new Logic(partner(64,40),[6]);l.run(named['Evolution Expert'].script);assert.equal(l.get(1),dexId(65));assert.equal(l.get(pokemonVars(64).own),1);
+});
+test('Training reaches level 100 and never exceeds it',()=>{
+  const p=pokemonVars(151),l=new Logic({...partner(151,99),[p.xp]:197,7:1});l.run(named['GAIN-XP'].script);assert.equal(l.get(p.level),100);
+  l.v[7]=100;l.run(named['GAIN-XP'].script);assert.equal(l.get(p.level),100);
+});
+test('The Master Ball guarantees a wild catch and cannot catch trainer Pokemon',()=>{
+  const l=new Logic({...base,202:1,4:dexId(150),5:300,6:304,7:70},[4]);assert.equal(l.run(named.BAG.script).kind,'pop');assert.equal(l.get(202),0);assert.equal(l.get(pokemonVars(150).own),1);
+  const blocked=new Logic({...base,202:1,19:41},[4]);blocked.run(named.BAG.script);assert.equal(blocked.get(202),1);
+});
+test('Koga through Giovanni award all four remaining badges after their full teams',()=>{
+  for(const mode of [29,30,31,32]){
+    const l=new Logic({...partner(151,80),19:mode,20:1,7:40});l.run(named['BOSS-CONFIG'].script);
+    bossTeams[mode].team.forEach((_,i)=>{const end=l.run(named.VICTORY.script);assert.equal(end?.kind,i===bossTeams[mode].team.length-1?'pop':undefined);});
+    assert.equal(l.get(bossTeams[mode].badge),1);
+  }
+});
+test('All five League teams advance the sequence, with no badge healing',()=>{
+  const l=new Logic({...partner(151,80),3:100,[pokemonVars(151).hp]:100});
+  for(const mode of [37,38,39,40,41]){l.v[19]=mode;l.v[20]=1;l.run(named['BOSS-CONFIG'].script);for(let i=0;i<bossTeams[mode].team.length;i++)l.run(named.VICTORY.script);assert.equal(l.get(195),bossTeams[mode].leagueStep);}
+  assert.equal(l.get(196),1);assert.ok(l.get(3)<l.get(2),'league victory did not fully heal');
+});
+test('The League gate rejects missing badges, rival victory, or Strength',()=>{
+  const t=plan.triggers.find(t=>t.name==='league badge gate'),state={...base,...Object.fromEntries([12,150,151,152,180,181,182,183,187,211].map(v=>[v,1]))};
+  for(const missing of [12,150,151,152,180,181,182,183,187,211])assert.equal(new Logic({...state,[missing]:0}).run(byId[t.id].script),null);
+  assert.equal(new Logic(state).run(byId[t.id].script).args.sceneId,scenes.victory_road.id);
+});
+test('Fuji, Safari, Silph and Mansion objectives set the required quest flags',()=>{
+  const l=new Logic({...base,197:1});l.run(named['Mr Fuji'].script);assert.equal(l.get(185),1);
+  l.run(named['Gold Teeth'].script);l.run(named.Warden.script);assert.equal(l.get(187),1);
+  l.run(named['Surf Keeper'].script);assert.equal(l.get(186),1);
+  l.v[234]=1;l.run(named['Card Key'].script);assert.equal(l.get(189),1);
+  l.run(named['Secret Key'].script);assert.equal(l.get(191),1);
+});
+test('Hall of Fame saves the completed campaign and postgame unlock',()=>{
+  const oak=plan.actors.find(a=>a.sceneId===scenes.hall_of_fame.id&&a.name==='Professor Oak');
+  const l=new Logic({...base,196:1});l.run(byId[oak.id].script);
+  assert.equal(l.get(220),1);assert.equal(l.saved[220],1);assert.equal(l.saved[196],1);
+});
+test('Healing keeps purchased supplies instead of resetting them',()=>{
+  const l=new Logic({...base,8:50,9:40});l.run(named['Nurse Joy'].script);assert.equal(l.get(8),50);assert.equal(l.get(9),40);
 });
 const output={provenance:'authored-native-event-unit-simulation',romExecuted:false,emulatorFramesInspected:false,tests:results,passed:results.length};
 await mkdir(path.join(root,'verification'),{recursive:true});

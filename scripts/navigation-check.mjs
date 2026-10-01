@@ -16,6 +16,7 @@ function inspect(events,source){for(const event of events){if(event.command==='E
   const arrivals=entrances.get(s.id)||[];arrivals.push([x,y]);entrances.set(s.id,arrivals);
 }for(const child of Object.values(event.children||{}))inspect(child,source);}}
 for(const script of plan.scripts)inspect(script.events,scenes.get(script.target.sceneId)?.name||script.target.sceneId);
+for(const script of plan.customScripts||[])inspect(script.script,script.name);
 for(const scene of scenes.values()){
   const arrivals=entrances.get(scene.id)||[];
   if(!arrivals.length)continue;

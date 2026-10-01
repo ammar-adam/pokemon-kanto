@@ -39,11 +39,12 @@ No hardware write is performed by the included assistant.
 Open `Pokemon-Kanto.gbc` in a Game Boy Color-compatible emulator. Choose its
 GBC mode and allow battery-backed saves. D-pad moves/selects, A confirms, B
 cancels, Start opens the field menu. Preserve your emulator's save file when updating.
-Save compatibility with the old first-chapter release is not guaranteed; keep a backup.
+Start a new game for v0.3.0. Its larger roster and memory layout are incompatible
+with older saves; back up your old save instead of overwriting it.
 
 To edit, clone the repository and open `project.gbsproj` in GB Studio 4.3.2.
 Use Play or Export ROM. See [official build documentation](https://www.gbstudio.dev/docs/build/).
-To run source checks, install Node 22+ and run `npm test`; there are no npm dependencies.
+To run source checks, install Node 22+ and run `npm ci` then `npm test`.
 
 This is an unofficial, custom fan game, not a commercial Pokemon ROM or an
 exact reproduction of Red/Blue. Names and character designs remain their owners'.

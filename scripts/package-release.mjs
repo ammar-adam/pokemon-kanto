@@ -13,6 +13,6 @@ const out=path.join(root,'dist/Pokemon-Kanto');
 await mkdir(out,{recursive:true});
 await writeFile(path.join(out,'Pokemon-Kanto.gbc'),rom);
 for(const name of ['INSTALL.md','INSTALL.html','Install-on-Chromatic.cmd','Install-on-Chromatic.ps1']) await copyFile(path.join(root,'distribution',name),path.join(out,name));
-await copyFile(path.join(root,'artwork/campaign-review.png'),path.join(out,'map-preview.png'));
+await copyFile(path.join(root,'artwork/champion-preview.png'),path.join(out,'map-preview.png'));
 await writeFile(path.join(out,'release.json'),JSON.stringify({version:metadata.version,sourceCommit:execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim(),rom:{file:'Pokemon-Kanto.gbc',sizeBytes:rom.length,sha256},verification:acceptance},null,2));
 console.log(out);
