@@ -1,78 +1,70 @@
-# Pokemon Kanto: First Chapter
+# Pokemon Kanto: Four Badges
 
-A custom Game Boy Color fan game featuring actual first-generation Pokemon,
-Red, Professor Oak, Blue, Nurse Joy, and Brock. This is an expanded first
-chapter, not the full commercial Red/Blue game or a proprietary ROM download.
+An unofficial, custom Game Boy Color fan game with a compact Kanto journey
+from Pallet Town through Celadon City. This is original homebrew source, not a
+copy of the commercial Pokemon Red/Blue ROM or its full game engine.
 
-## Game
+## Play
 
-Choose Charmander, Bulbasaur, or Squirtle at Oak's lab. Battle Blue, explore
-Route 1, catch Pokemon, train against a Youngster, and challenge Brock's
-Geodude and Onix for the Boulder Badge. Exploration remains available after
-the badge. The town, lab, route and gym are condensed into a small map.
+Choose Charmander, Bulbasaur, or Squirtle at Oak's lab, battle Blue, travel
+through Viridian Forest and Mt. Moon, meet Bill, board the S.S. Anne, confront
+Team Rocket, and challenge Brock, Misty, Lt. Surge, and Erika. The project has
+27 scenes, including 25 illustrated campaign areas and the battle scene.
 
-- Eight Pokemon: Charmander, Bulbasaur, Squirtle, Pikachu, Geodude, Zubat,
-  Onix and Pidgey, with custom hand-authored front/back pixel sprites.
-- Four named moves per species, individual PP, Struggle, critical hits,
-  elemental advantages, Electric immunity for Geodude/Onix, and battle effects.
-- Individual HP, levels, and experience. Levels currently cap at 20.
-- A maximum six-member party; excess unique catches go into Bill's PC.
-- PC deposit/withdrawal, party switching, fainting and full-party recovery.
-- Nurse Joy restores HP, PP and supplies near the CENTER building.
-- A Start menu for Pokemon, the eight-entry Pokedex, trainer card and saving.
-- New Game and Continue, with native battery-backed save events.
+- 20 first-generation Pokemon with custom-authored front/back sprites.
+- Viridian Forest encounters include Caterpie, Weedle, Metapod, Pikachu,
+  Butterfree, and Beedrill. Other routes and caves have distinct encounter pools.
+- Bug Catchers, Scouts, Hikers, Lass, Sailor, Rocket Grunts, Blue, Giovanni,
+  and gym leaders have different teams and one-time victory flags.
+- Four moves per species, PP, type interactions, experience, party switching,
+  six-member party, PC storage, healing, Pokedex pages, and battery saves.
+- Color palettes vary by area, with custom map and trainer pixel art.
 
-Weaken a wild Pokemon before throwing a Poke Ball from BAG. Capture is
-guaranteed at one-third HP or less. Trainer Pokemon cannot be caught.
-There is one saved representative per species, not duplicate individual catches.
-Moves, encounter distribution, stats, XP, capture and status effects use custom
-compact-game balancing; they do not reproduce the complete Generation I engine.
-There are no evolutions, 151-species roster, trading, Elite Four, or full Kanto
-campaign in this build. Those remain expansion work, not completed features.
+Battles, levels, encounters, progression, and capture rules are tailored to this
+compact game. A wild Pokemon is guaranteed to be caught at one-third HP or
+less. There is one saved representative per species, not duplicate catches.
+This is **not** half of the original Red/Blue ROM: it does not have all 151
+species, evolutions, trading, every building, the full Kanto script, or the
+Generation I battle engine. Levels currently cap at 20 in the player system;
+late trainers have intentionally stronger fixed teams.
 
-## Files And Controls
+## Download And Install
 
-- `build/pokemon-kanto.gbc`: new compiled GBC-only cartridge.
-- `build/pocket-frontier.gbc`: preserved earlier original-creature ROM.
-- `project.gbsproj`: editable native GB Studio project; built with CLI 4.3.2.
-- `project/`: editable scenes, actors, triggers, palettes, variables, and events.
-- `artwork/`: retained pixel-authoring sources and game-design source.
-- `verification/`: build receipts, authored-logic results, and acceptance limits.
+Get the [latest release](https://github.com/ammar-adam/pokemon-kanto/releases)
+and extract the ZIP. Open `Pokemon-Kanto.gbc` in a Game Boy Color-compatible
+emulator, or follow [the Chromatic installation guide](distribution/INSTALL.md)
+for a supported writable homebrew cartridge. The included Windows assistant
+checks the ROM hash and opens that guide; it does **not** flash a cartridge.
+Playing the ROM does not require Node, Python, GB Studio, or a connected device.
 
-Use a Game Boy Color-compatible emulator or an appropriate homebrew cartridge.
-D-pad moves and selects. A interacts and confirms. B cancels supported menus.
-Start opens the overworld menu. A physical Chromatic is not needed to compile.
-No cartridge flashing or hardware deployment has been performed.
+D-pad moves/selects; A interacts/confirms; B cancels supported menus; Start
+opens the field menu. Save compatibility with earlier builds is not guaranteed.
+Back up an existing `.sav` file before updating.
 
-## Build And Verification
+## Edit And Test
 
-From the original Windows workspace, use the verified helper:
+Open `project.gbsproj` in GB Studio 4.3.2 to edit or export a ROM. The `project/`
+and `assets/` directories are the native game; `artwork/` retains deterministic
+pixel-art and game-design authoring sources. Do not regenerate over later native
+edits without reconciling them.
 
-```powershell
-& '.\work\run-chromatic.ps1' -ProjectPath '<absolute path to project.gbsproj>' -RequestPath '<absolute path to artwork\pokemon-build-request.json>'
-```
+With Node 22+, run `npm test` for source/resource checks. These cover authored
+events, randomized encounter branches, multi-Pokemon trainer wins, navigation
+reachability, sprite bounds, and native resource parity. GitHub Actions runs
+the same checks on each push and pull request. It does **not** compile or run
+the ROM on GitHub.
 
-The helper preserves the installed plugin and its original temporary-directory
-ownership checks. Its project path must remain inside the workspace. The desktop
-GB Studio editor is separate and was not installed as part of this task.
+The release ROM is compiled with GB Studio CLI 4.3.2 and GBDK 4.5.0 using the
+ModRetro Chromatic plugin. In the original Windows workspace, the verified
+`work/run-chromatic.ps1` helper supplies an account-owned temporary directory
+to the unchanged plugin server. Its project path must stay inside that workspace.
+`release.json` in each ZIP records the exact ROM checksum and verification
+limits. A successful compile and source checks do not prove live controller,
+rendering, save/reload, or full campaign playability. The plugin's public
+emulator and browser preview were unavailable for this release, so those
+runtime checks remain open.
 
-Fresh compilation and inspection receipts are retained in `verification/`.
-The final 256 KB ROM compiles successfully, its cartridge header is valid, and
-36 authored-event unit checks pass. All eight front/back sprite pairs fit their
-32x32 canvases, and static graphics budgets have no reported diagnostics.
-`artwork/logic-check.mjs` checks the actual native resources rather than only
-the design generator. Its results explicitly identify authored-event unit
-simulation, not ROM execution. Static graphics review is not gameplay evidence.
-
-The public plugin emulator timed out on the Pokemon build before the final
-sprite-coordinate correction. The final build has not run in an emulator.
-Browser preview
-still cannot build because the app's temporary directory is not trusted. Live
-movement, rendering, controller timing, save reloads, and complete gameplay
-remain unverified. No alternate caller was used to bypass emulator restrictions.
-
-The project retains the original minimal font/UI resources and their existing
-license. Pokemon names and character designs belong to their respective owners.
-The maps, raster files, scripts and balancing were custom authored here.
-The earlier Pocket Frontier ZIP remains untouched in workspace outputs.
-Preserve edited native resources and PNGs; do not regenerate over later edits.
+Pokemon names and character designs belong to their respective owners. The
+project's maps, pixel assets, source scripts, and balancing were authored for
+this noncommercial fan project. The repository's inherited GB Studio license
+does not grant rights to the Pokemon property.

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { decodeResourceBytes } from '../scripts/resource-bytes.mjs';
+import { bossTeams,world } from './campaign-world.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const plan=JSON.parse(await readFile(path.join(root,'artwork/game-plan.json'),'utf8'));
@@ -89,7 +90,43 @@ test('Pikachu Thunder Wave and Charmander Smokescreen set battle effects',()=>{l
 test('PC preserves a valid lead even when the remaining party is fainted',()=>{const l=new Logic({...base,25:2,33:1,53:1,43:0},[2]);l.run(named['Bills PC'].script);assert.equal(l.get(1),4);assert.equal(l.get(25),1);assert.equal(l.get(3),0);});
 test('Individual experience levels only the battling Pokemon',()=>{const l=new Logic({...base,71:5,19:0});l.run(named.VICTORY.script);assert.equal(l.get(61),4);assert.equal(l.get(60),3);assert.equal(l.get(71),2);assert.equal(l.get(2),40);});
 test('Every transition lands on clear two-tile player footing',()=>{for(const r of resources){for(const key of ['script','startScript']){function check(events){for(const e of events||[]){if(e.command==='EVENT_SWITCH_SCENE'){const s=byId[e.args.sceneId],x=e.args.x.value,y=e.args.y.value;const bytes=decodeResourceBytes(s.collisions,{maximumValues:s.width*s.height});assert.equal(bytes[y*s.width+x],0,`landing ${s.name} ${x},${y}`);assert.equal(bytes[y*s.width+x+1],0,`landing right ${s.name} ${x},${y}`);}for(const child of Object.values(e.children||{}))check(child);}}check(r[key]);}}});
-test('Healer is reachable from the laboratory exit',()=>{const s=scenes.fernvale,b=decodeResourceBytes(s.collisions,{maximumValues:s.width*s.height}),queue=[[7,13]],seen=new Set();let reachable=false;while(queue.length){const [x,y]=queue.shift(),k=`${x},${y}`;if(seen.has(k)||x<1||y<1||x+1>=s.width||y>=s.height||b[y*s.width+x]||b[y*s.width+x+1])continue;seen.add(k);if(x===19&&y===23)reachable=true;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]])queue.push([x+dx,y+dy]);}assert.ok(reachable);});
+test('Healer approach is reachable from the laboratory exit',()=>{const s=scenes.fernvale,b=decodeResourceBytes(s.collisions,{maximumValues:s.width*s.height}),queue=[[7,13]],seen=new Set();let reachable=false;while(queue.length){const [x,y]=queue.shift(),k=`${x},${y}`;if(seen.has(k)||x<1||y<1||x+1>=s.width||y>=s.height||b[y*s.width+x]||b[y*s.width+x+1])continue;seen.add(k);if(x===18&&y===21)reachable=true;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]])queue.push([x+dx,y+dy]);}assert.ok(reachable);});
+test('Forest has six catchable encounter outcomes, including four new bugs',()=>{
+  const forest=world.find(s=>s.key==='forest'),t=plan.triggers.find(t=>t.name==='wild forest 0 0');
+  assert.deepEqual(forest.encounters,[9,17,18,4,19,20]);
+  for(let i=1;i<=forest.encounters.length;i++){const l=new Logic(base,[],[1,i,6]);assert.equal(l.run(byId[t.id].script).kind,'switch');assert.equal(l.get(4),forest.encounters[i-1]);assert.equal(l.get(7),6);}
+});
+test('Pewter east gate requires the Boulder Badge',()=>{const t=plan.triggers.find(t=>t.name==='east route three');let l=new Logic(base);assert.equal(l.run(byId[t.id].script),null);l=new Logic({...base,12:1});assert.equal(l.run(byId[t.id].script).args.sceneId,scenes.route_three.id);});
+test('Misty, Surge and Erika each field two distinct Pokemon and award their badge',()=>{
+  for(const [mode,first,last,badge]of [[4,12,13,150],[5,4,14,151],[6,15,16,152]]){
+    const l=new Logic({...base,19:mode,20:1,133:0});l.run(named['BOSS-CONFIG'].script);assert.equal(l.get(4),first);
+    assert.equal(l.run(named.VICTORY.script),null);assert.equal(l.get(20),2);assert.equal(l.get(4),last);
+    assert.equal(l.run(named.VICTORY.script).kind,'pop');assert.equal(l.get(badge),1);
+  }
+});
+test('Surge lock requires ordered switches and Cut',()=>{
+  const switches=plan.actors.filter(a=>a.sceneId===scenes.vermilion_gym.id&&a.name==='Electric Switch').sort((a,b)=>a.x-b.x);
+  const l=new Logic(base);for(const a of switches)l.run(byId[a.id].script);assert.equal(l.get(163),3);
+  const gate=plan.triggers.find(t=>t.name==='enter vermilion gym');assert.equal(new Logic(base).run(byId[gate.id].script),null);
+  assert.equal(new Logic({...base,158:1}).run(byId[gate.id].script).args.sceneId,scenes.vermilion_gym.id);
+});
+test('Bill gives the ticket; Captain gives Cut; Giovanni needs the Lift Key',()=>{
+  const bill=plan.actors.find(a=>a.name==='Bill'),captain=plan.actors.find(a=>a.name==='S.S. Captain'),boss=plan.actors.find(a=>a.name==='Giovanni');
+  let l=new Logic(base);l.run(byId[bill.id].script);assert.equal(l.get(157),1);
+  l.run(byId[captain.id].script);assert.equal(l.get(158),1);
+  l=new Logic(base);assert.equal(l.run(byId[boss.id].script),null);
+  l=new Logic({...base,160:1},[1]);assert.equal(l.run(byId[boss.id].script).kind,'switch');assert.equal(l.get(19),8);
+});
+test('Forest trainers and later route trainers use distinct teams and win flags',()=>{
+  const modes=[11,14,15,16,25,26,27,28],flags=modes.map(m=>bossTeams[m].flag);
+  assert.equal(new Set(flags).size,flags.length);
+  assert.ok(modes.every(m=>bossTeams[m].team.length>=2));
+  assert.ok(new Set(modes.flatMap(m=>bossTeams[m].team.map(([pokemon])=>pokemon))).size>=8);
+});
+test('Paged PC menu reaches new species and keeps party and box counts consistent',()=>{
+  const l=new Logic({...base,400:1,401:56,402:0,403:8,25:1},[8,2]);l.run(named['Bills PC'].script);
+  assert.equal(l.get(402),1);assert.equal(l.get(25),2);
+});
 const output={provenance:'authored-native-event-unit-simulation',romExecuted:false,emulatorFramesInspected:false,tests:results,passed:results.length};
 await mkdir(path.join(root,'verification'),{recursive:true});
 await writeFile(path.join(root,'verification/logic-results.json'),JSON.stringify(output,null,2));
