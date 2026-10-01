@@ -31,5 +31,10 @@ for(const scene of scenes.values()){
     for(let y=t.y;y<t.y+t.height;y++)for(let x=t.x;x<t.x+t.width;x++)if(seen.has(`${x},${y}`))reachable=true;
     if(!reachable)errors.push(`${scene.name}: trigger ${t.name} unreachable from any arrival`);
   }
+  if(scene.name!=='battlefield')for(const actor of plan.actors.filter(a=>a.sceneId===scene.id)){
+    if(!plan.scripts.some(s=>s.target.actorId===actor.id&&s.events.length))continue;
+    const approachable=[[-2,0],[2,0],[0,-1],[0,1],[0,-2],[0,2]].some(([dx,dy])=>seen.has(`${actor.x+dx},${actor.y+dy}`));
+    if(!approachable)errors.push(`${scene.name}: actor ${actor.name} has no reachable approach`);
+  }
 }
 if(errors.length){console.error(errors.join('\n'));process.exitCode=1;}else console.log('All authored scene transitions land on clear two-tile footing.');
