@@ -2,7 +2,7 @@ import { readFile, readdir, writeFile, mkdir } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { decodeResourceBytes } from 'file:///C:/Users/aaamm/.codex/plugins/cache/openai-curated-remote/modretro-chromatic/1.0.33+codex.distribution.66e8961d3ce30093ea3c9ee4/dist/resource-codec.js';
+import { decodeResourceBytes } from '../scripts/resource-bytes.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const plan=JSON.parse(await readFile(path.join(root,'artwork/game-plan.json'),'utf8'));
