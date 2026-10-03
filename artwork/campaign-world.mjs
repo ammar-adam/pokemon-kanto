@@ -71,7 +71,7 @@ world.push(
   {key:'cinnabar_gym',name:'CINNABAR GYM',kind:'gym',theme:'coral'},
   {key:'route_twenty_one',name:'ROUTE TWENTY ONE',kind:'route',theme:'blue',level:38,encounters:encounters(61,62,80,99,117,130)},
   {key:'viridian_gym',name:'VIRIDIAN GYM',kind:'gym',theme:'stone'},
-  {key:'route_twenty_two',name:'ROUTE TWENTY TWO',kind:'route',level:42,encounters:encounters(56,57,23,24,35)},
+  {key:'route_twenty_two',name:'ROUTE TWENTY TWO',kind:'route',level:3,encounters:encounters(19,32,21,29)},
   {key:'victory_road',name:'VICTORY ROAD',kind:'cave',level:44,encounters:encounters(67,75,95,105)},
   {key:'victory_summit',name:'VICTORY SUMMIT',kind:'cave',level:47,encounters:encounters(67,75,95,105)},
   {key:'indigo',name:'INDIGO PLATEAU',kind:'town',theme:'blue'},
@@ -83,7 +83,7 @@ world.push(
   {key:'hall_of_fame',name:'HALL OF FAME',kind:'room'},
   {key:'power_plant',name:'POWER PLANT',kind:'hideout',theme:'gold',level:36,encounters:encounters(81,82,100,101,125)},
   {key:'cerulean_cave',name:'CERULEAN CAVE',kind:'cave',theme:'violet',level:60,encounters:encounters(64,97,112,115,113,132)},
-  {key:'secret_garden',name:'OAKS RESERVE',kind:'forest',level:50,encounters:encounters(1,4,7,133,106,107,137,138,140,142)}
+  {key:'secret_garden',name:'OAKS RESERVE',kind:'forest',level:50,encounters:encounters(1,4,7,133,106,107,137,138,140,142,23,27)}
 );
 // Complete each regional pool with base forms and version-exclusive species.
 world.find(s=>s.key==='route_three').encounters.push(...encounters(21,23,27,29,32,39));
@@ -148,3 +148,34 @@ Object.assign(bossTeams,{
   55:{name:'CHANNELER',team:team([92,27],[93,29]),flag:242},
   56:{name:'ENGINEER',team:team([82,36],[101,37],[125,39]),flag:243}
 });
+// Red/Blue species and levels; HP remains the homebrew battle model.
+export const redTeams={
+  1:[[74,12],[95,14]],4:[[120,18],[121,21]],
+  5:[[100,21],[25,18],[26,24]],6:[[71,29],[114,24],[45,29]],
+  8:[[95,25],[111,24],[115,29]],10:[[17,19],[20,16],[64,18],[8,20]],
+  11:[[13,9]],14:[[13,6],[10,6]],15:[[13,7],[14,7],[13,7]],
+  12:[[19,11],[23,11]],13:[[16,9],[16,9]],22:[[74,10],[74,10],[95,10]],
+  29:[[109,37],[89,39],[109,37],[110,43]],
+  35:[[18,37],[58,38],[102,35],[65,35],[9,40]],
+  41:[[18,61],[65,59],[112,61],[59,61],[103,63],[9,65]],
+  57:[[16,9],[7,8]],58:[[17,18],[63,15],[19,15],[7,17]],
+  59:[[10,10],[13,10],[10,10]],60:[[13,9],[14,9],[10,9],[11,9]],
+  61:[[10,11],[11,11]],62:[[21,14]],63:[[19,10],[32,10]],64:[[39,14]],
+  65:[[50,11],[27,11]]
+};
+Object.assign(bossTeams,{
+  57:{name:'BLUE',flag:262},58:{name:'BLUE',flag:263},
+  59:{name:'BUG CATCHER',flag:264},60:{name:'BUG CATCHER',flag:265},
+  61:{name:'BUG CATCHER',flag:266},62:{name:'YOUNGSTER',flag:267},
+  63:{name:'LASS',flag:268},64:{name:'LASS',flag:269},65:{name:'CAMPER',flag:270}
+});
+for(const [mode,pairs]of Object.entries(redTeams))bossTeams[mode].team=team(...pairs);
+bossTeams[12].name='YOUNGSTER';bossTeams[14].name='BUG CATCHER';
+// Keyed by the player's starter: Charmander, Bulbasaur, Squirtle.
+export const rivalVariants={
+  10:{1:[[8,20]],2:[[5,20]],3:[[2,20]]},
+  35:{1:[[58,38],[102,35],[65,35],[9,40]],2:[[102,38],[130,35],[65,35],[6,40]],3:[[130,38],[58,35],[65,35],[3,40]]},
+  41:{1:[[59,61],[103,63],[9,65]],2:[[103,61],[130,63],[6,65]],3:[[130,61],[59,63],[3,65]]},
+  42:{1:[[58,45],[102,47],[65,50],[9,53]],2:[[102,45],[130,47],[65,50],[6,53]],3:[[130,45],[58,47],[65,50],[3,53]]},
+  57:{1:[[7,8]],2:[[4,8]],3:[[1,8]]},58:{1:[[7,17]],2:[[4,17]],3:[[1,17]]}
+};

@@ -18,6 +18,8 @@ function align(old,next){
   while(i<old.length&&j<next.length){if(signature(old[i])===signature(next[j])){matches.set(j,old[i]);i++;j++;}else if(dp[i+1][j]>=dp[i][j+1])i++;else j++;}
   return next.map((e,k)=>{const before=matches.get(k);if(!before)return fresh(e);return {...before,...e,id:before.id,args:{...before.args,...e.args},...(e.children?{children:Object.fromEntries(Object.entries(e.children).map(([branch,list])=>[branch,align(before.children?.[branch]||[],list)]))}:{})};});
 }
+// Preserve shared event identities before materializing regenerated scripts.
+for(const s of plan.customScripts||[])s.script=align(byId[s.id]?.script||[],s.script);
 const groups=[];
 for(const s of plan.scripts){const owner=byId[s.target.actorId||s.target.triggerId||s.target.sceneId],old=owner?.[s.target.scriptKey]||[];s.events=align(old,s.events);const wanted=new Set(s.events.map(e=>e.id)),oldIds=new Set(old.map(e=>e.id));
   const operations=old.filter(e=>!wanted.has(e.id)).map(e=>({type:'event.edit',action:'delete',target:s.target,eventId:e.id}));

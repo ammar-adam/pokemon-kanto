@@ -2,9 +2,10 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { additionalSpecies, bossTeams, world, roster, dexId } from './campaign-world.mjs';
+import { additionalSpecies, bossTeams, rivalVariants, world, roster, dexId } from './campaign-world.mjs';
 import { authorFullCampaign, travelMenu, journeyEvents } from './full-campaign.mjs';
 import { authorOpening } from './opening-story.mjs';
+import { authorRedProgression } from './red-progression.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ids = JSON.parse(await readFile(path.join(root,'artwork/pokemon-resource-ids.json'),'utf8'));
@@ -185,8 +186,7 @@ script('battlefield','bag',[menu(13,['POKE BALL','POTION','BACK','MASTER BALL'])
 function configureBoss(){return [
   ...Object.entries(bossTeams).map(([mode,team])=>IF(19,'==',Number(mode),team.team.map(([pokemon,level,max],i)=>IF(20,'==',i+1,[set(4,pokemon),set(7,level),set(6,max)])))),
   IF(19,'==',2,[IF(27,'==',1,[set(4,3)]),IF(27,'==',2,[set(4,1)]),IF(27,'==',3,[set(4,2)]),set(7,5),set(6,32)]),
-  IF(19,'==',10,[IF(20,'==',2,[IF(27,'==',1,[set(4,3)]),IF(27,'==',2,[set(4,1)]),IF(27,'==',3,[set(4,2)])])]),
-  ...[35,41,42].map(mode=>IF(19,'==',mode,[IF(20,'==',bossTeams[mode].team.length,[IF(27,'==',1,[set(4,dexId(9))]),IF(27,'==',2,[set(4,dexId(6))]),IF(27,'==',3,[set(4,dexId(3))])])])),
+  ...Object.entries(rivalVariants).map(([mode,variants])=>IF(19,'==',Number(mode),Object.entries(variants).map(([starter,pairs])=>IF(27,'==',Number(starter),pairs.map(([dex,level],i)=>IF(20,'==',bossTeams[mode].team.length-pairs.length+i+1,[set(4,dexId(dex)),set(7,level),set(6,level*4+24)])))))),
   IF(19,'==',3,[set(4,8),set(7,6),set(6,32)]),set(5,V(6)),set(28,0),set(29,0),set(68,0),set(69,0),set(302,0),set(303,0)];}
 script('battlefield','boss-config',configureBoss());
 script('battlefield','heal-all',heal());
@@ -297,12 +297,12 @@ const healer=(scene,checkpoint)=>{actor(scene,scene+' nurse','Nurse Joy','joy',1
 for(const [scene,checkpoint]of [['viridian',1],['pewter',2],['cerulean',3],['vermilion',4],['lavender',5],['celadon',6]])healer(scene,checkpoint);
 actor('red_house','mom','Mom','joy',9,8,[say('MOM:\nREST HERE, RED.'),...heal(),...loadHP(),say('YOUR POKEMON\nLOOK GREAT!')]);
 const trainer=(scene,key,name,sprite,x,y,mode,flag)=>{const portrait=/ROCKET/i.test(name)?'trainer-rocket':/BUG CATCHER/i.test(name)?'trainer-catcher':/SAILOR/i.test(name)?'trainer-sailor':sprite;actor(scene,key,name,portrait,x,y,[IF(flag,'==',1,[say(`${name}:\nYOU WON OUR\nLAST BATTLE!`)],[say(`${name}:\nLET US BATTLE!`),menu(13,['BATTLE','LATER']),IF(13,'==',1,[set(19,mode),set(20,1),...startBattle()])])]);};
-trainer('forest','forest scout','Forest Scout','blue',12,9,14,167);
+trainer('forest','forest scout','BUG CATCHER','blue',12,9,14,167);
 trainer('forest','forest catcher','Bug Catcher','oak',20,19,15,168);
 trainer('forest','forest expert','Forest Ranger','brock',11,24,16,169);
 trainer('forest','forest kid','Bug Catcher II','blue',22,8,11,164);
 trainer('route_three','route three lass','Lass','joy',12,12,13,166);
-trainer('route_three','route three hiker','Hiker','brock',20,22,12,165);
+trainer('route_three','route three hiker','Youngster','blue',20,22,12,165);
 trainer('mt_moon','moon rocket','Rocket Grunt','blue',15,10,7,153);
 trainer('mt_moon','moon hiker','Moon Hiker','brock',20,23,22,173);
 trainer('nugget_bridge','bridge grunt','Bridge Rocket','blue',15,9,9,155);
@@ -337,6 +337,7 @@ for(const site of world.filter(s=>s.encounters&&s.key!=='route_one')){
   }
 }
 authorOpening({plan,ids,uuid,E,IF,EX,N,V,set,math,rand,say,menu,script,actor,trigger,switchScene,position,hide,show,heal,loadHP,storage,pauseMenu,restorePP,startBattle,sfx});
+authorRedProgression({plan,ids,uuid,actor,trainer,IF,EX,say,menu,set,startBattle});
 const count = events => events.reduce((n,e)=>n+1+Object.values(e.children||{}).reduce((m,a)=>m+count(a),0),0);
 // A native script bank is small. Split independent event lists into shared calls.
 let bankSerial=0;

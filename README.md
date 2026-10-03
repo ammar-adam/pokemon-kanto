@@ -1,6 +1,19 @@
 # Pokemon Kanto: Opening Remake Preview
 
-## v0.4.0-alpha.1
+## v0.4.0-alpha.2
+
+The progression pass adds Blue's early Route 22 and Cerulean fights, all eight
+Route 3 trainers, and Pewter's gym Camper. Route 22 no longer has endgame wild
+Pokemon beside the starting city. Route 3 and Mt. Moon now also use weighted
+Red species/level tables. All eight gym leaders have their Red/Blue party sizes,
+species, and levels; later Blue teams vary their supporting Pokemon as well as
+their starter. These roster facts follow the [Red trainer data](https://github.com/pret/pokered/blob/master/data/trainers/parties.asm).
+HP, damage, capture, and move-learning rules are still the custom battle model.
+
+The new trainers are interaction-triggered, not original sight-line encounters.
+Forest has three Bug Catcher battles and a guide. Ekans and Sandshrew remain
+available in the postgame reserve so accurate early tables do not remove their
+evolution families from the collection. This remains an unfinished remake.
 
 This branch starts a more faithful opening, not a finished recreation of Red/Blue.
 Start at home, meet Oak, choose one of three starter balls, battle Blue, collect
@@ -14,7 +27,7 @@ exact original maps; the house is still one room. Encounter frequency, battle
 stats, move learning, dialogue, and later campaign areas remain simplified.
 There are 68 native scenes. The prior v0.3.0 campaign release is preserved.
 **Start a new save for this preview.** Controller play, saves, and hardware
-have not been verified. The 62 logic tests are source checks, not playtests.
+have not been verified. The 67 logic tests are source checks, not playtests.
 
 Encounter references: [Route One](https://github.com/pret/pokered/blob/master/data/wild/maps/Route1.asm)
 and [Viridian Forest](https://github.com/pret/pokered/blob/master/data/wild/maps/ViridianForest.asm).
@@ -63,7 +76,7 @@ checks the ROM hash and opens that guide; it does **not** flash a cartridge.
 Playing the ROM does not require Node, Python, GB Studio, or a connected device.
 
 D-pad moves/selects; A interacts/confirms; B cancels supported menus; Start
-opens the field menu. **Start a new game for v0.4.0-alpha.1.** Its progression and VM
+opens the field menu. **Start a new game for v0.4.0-alpha.2.** Its progression and VM
 memory layout are incompatible with older saves. Back up old `.sav` files.
 
 ## Edit And Test

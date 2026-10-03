@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { decodeResourceBytes } from '../scripts/resource-bytes.mjs';
-import { bossTeams,world,roster,dexId } from './campaign-world.mjs';
+import { bossTeams,rivalVariants,world,roster,dexId } from './campaign-world.mjs';
 import { openingEncounters } from './opening-story.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -75,7 +75,7 @@ test('Fainting automatically brings in the next healthy owned partner',()=>{cons
 test('Full-party defeat heals and returns to an accessible town tile',()=>{const l=new Logic({...base,3:1,41:1,5:100,6:100},[1,1],[2]);const end=l.run(scenes.battlefield.script);assert.equal(end.kind,'switch');assert.equal(end.args.sceneId,scenes.fernvale.id);assert.equal(l.get(1),2);assert.equal(l.get(41),36);});
 test('Nested overworld party menu cannot accidentally save',()=>{const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');const l=new Logic({...base,32:1,52:1,42:36},[1,3]);l.run(pause.children.true);assert.equal(l.get(1),3);assert.equal(l.saved,null);});
 test('Explicit Save produces a journal snapshot',()=>{const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');const l=new Logic(base,[3]);l.run(pause.children.true);assert.equal(l.saved[31],1);assert.equal(l.saved[0],3);});
-test('Brock advances from Geodude to Onix and awards Boulder Badge',()=>{const l=new Logic({...base,19:1,20:1,5:0,71:5});l.run(named.VICTORY.script);assert.equal(l.get(20),2);assert.equal(l.get(4),7);assert.equal(l.get(7),10);assert.equal(l.get(0),4);assert.equal(l.get(2),40);assert.equal(l.run(named.VICTORY.script).kind,'pop');assert.equal(l.get(12),1);assert.equal(l.get(9),3);});
+test('Brock advances from Geodude to level fourteen Onix and awards Boulder Badge',()=>{const l=new Logic({...base,19:1,20:1,5:0,71:5});l.run(named.VICTORY.script);assert.equal(l.get(20),2);assert.equal(l.get(4),7);assert.equal(l.get(7),14);assert.equal(l.get(0),4);assert.equal(l.get(2),40);assert.equal(l.run(named.VICTORY.script).kind,'pop');assert.equal(l.get(12),1);assert.equal(l.get(9),3);});
 test('Nurse Joy restores HP and PP without giving free items',()=>{const l=new Logic({...base,8:0,9:0,41:0,104:0,61:3});l.run(named['Nurse Joy'].script);assert.equal(l.get(41),36);assert.equal(l.get(104),35);assert.equal(l.get(61),3);assert.equal(l.get(8),0);assert.equal(l.get(9),0);});
 test('Six-Pokemon party sends a seventh unique catch to PC storage',()=>{const l=new Logic({...base,25:6,10:6,4:7,5:1,7:4},[1],[100]);assert.equal(l.run(named.BAG.script).kind,'pop');assert.equal(l.get(36),1);assert.equal(l.get(56),0);assert.equal(l.get(25),6);assert.equal(l.get(66),4);assert.equal(l.get(46),40);});
 test('PC refuses depositing the last party member',()=>{const l=new Logic(base,[2]);l.run(named['Bills PC'].script);assert.equal(l.get(51),1);assert.equal(l.get(25),1);});
@@ -102,17 +102,42 @@ test('Every transition lands on clear two-tile player footing',()=>{for(const r 
 test('Home is reachable from the relocated laboratory exit',()=>{const s=scenes.fernvale,b=decodeResourceBytes(s.collisions,{maximumValues:s.width*s.height}),queue=[[23,23]],seen=new Set();let reachable=false;while(queue.length){const [x,y]=queue.shift(),k=`${x},${y}`;if(seen.has(k)||x<1||y<1||x+1>=s.width||y>=s.height||b[y*s.width+x]||b[y*s.width+x+1])continue;seen.add(k);if(x===7&&y===11)reachable=true;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]])queue.push([x+dx,y+dy]);}assert.ok(reachable);});
 test('Opening encounters use every weighted Red slot and its level',()=>{
   for(const [area,slots]of Object.entries(openingEncounters)){
-    const t=plan.triggers.find(t=>area==='forest'?t.name==='wild forest 0 0':t.name==='grass 0 5');let start=0;
+    const t=plan.triggers.find(t=>t.sceneId===scenes[area].id&&(t.name.startsWith('wild ')||t.name.startsWith('grass ')));assert.ok(t,area);let start=0;
     for(const [dex,level,weight]of slots){for(const roll of [start+1,start+weight]){const l=new Logic(base,[],[1,roll]);assert.equal(l.run(byId[t.id].script).kind,'switch');assert.equal(l.get(4),dexId(dex));assert.equal(l.get(7),level);}start+=weight;}assert.equal(start,100);
   }
 });
 test('Pewter east gate requires the Boulder Badge',()=>{const t=plan.triggers.find(t=>t.name==='east route three');let l=new Logic(base);assert.equal(l.run(byId[t.id].script),null);l=new Logic({...base,12:1});assert.equal(l.run(byId[t.id].script).args.sceneId,scenes.route_three.id);});
-test('Misty, Surge and Erika each field two distinct Pokemon and award their badge',()=>{
-  for(const [mode,first,last,badge]of [[4,12,13,150],[5,4,14,151],[6,15,16,152]]){
-    const l=new Logic({...base,19:mode,20:1,133:0});l.run(named['BOSS-CONFIG'].script);assert.equal(l.get(4),first);
-    assert.equal(l.run(named.VICTORY.script),null);assert.equal(l.get(20),2);assert.equal(l.get(4),last);
-    assert.equal(l.run(named.VICTORY.script).kind,'pop');assert.equal(l.get(badge),1);
+test('Every gym leader fields the full Red team in order before awarding a badge',()=>{
+  const teams={1:[[74,12],[95,14]],4:[[120,18],[121,21]],5:[[100,21],[25,18],[26,24]],6:[[71,29],[114,24],[45,29]],29:[[109,37],[89,39],[109,37],[110,43]],30:[[64,38],[122,37],[49,38],[65,43]],31:[[58,42],[77,40],[78,42],[59,47]],32:[[111,45],[51,42],[31,44],[34,45],[112,50]]};
+  for(const [mode,team]of Object.entries(teams)){
+    const badge=bossTeams[mode].badge,l=new Logic({...base,19:Number(mode),20:1,133:0});l.run(named['BOSS-CONFIG'].script);
+    for(const [i,[dex,level]]of team.entries()){assert.equal(l.get(badge),0);assert.equal(l.get(4),dexId(dex));assert.equal(l.get(7),level);const end=l.run(named.VICTORY.script);assert.equal(end?.kind||null,i===team.length-1?'pop':null);}assert.equal(l.get(badge),1);
   }
+});
+test('Blue changes his complete variable lineup for all three starters',()=>{
+  for(const [mode,variants]of Object.entries(rivalVariants))for(const [starter,pairs]of Object.entries(variants))for(const [i,[dex,level]]of pairs.entries()){
+    const l=new Logic({...base,19:Number(mode),27:Number(starter),20:bossTeams[mode].team.length-pairs.length+i+1});l.run(named['BOSS-CONFIG'].script);assert.equal(l.get(4),dexId(dex));assert.equal(l.get(7),level);assert.equal(l.get(5),level*4+24);
+  }
+});
+test('Champion support Pokemon complement the chosen starter',()=>{
+  const expected={1:[59,103,9],2:[103,130,6],3:[130,59,3]};
+  for(const [starter,party]of Object.entries(expected))for(const [i,dex]of party.entries()){const l=new Logic({...base,19:41,27:Number(starter),20:i+4});l.run(named['BOSS-CONFIG'].script);assert.equal(l.get(4),dexId(dex));assert.equal(l.get(7),[61,63,65][i]);}
+});
+test('New trainers stand on clear tiles and have an open interaction edge',()=>{
+  const targets=plan.actors.filter(a=>[scenes.route_three.id,scenes.arena.id].includes(a.sceneId)||a.sceneId===scenes.cerulean.id&&a.name==='Blue');
+  for(const a of targets){const s=byId[a.sceneId],b=decodeResourceBytes(s.collisions,{maximumValues:s.width*s.height});const clear=(x,y)=>x>=0&&x+1<s.width&&y>=0&&y<s.height&&!b[y*s.width+x]&&!b[y*s.width+x+1];assert.ok(clear(a.x,a.y),a.name+' footing');assert.ok([[0,1],[0,-1],[-2,0],[2,0]].some(([dx,dy])=>clear(a.x+dx,a.y+dy)),a.name+' interaction');}
+});
+test('Route Twenty Two uses the early rival until all eight badges are earned',()=>{
+  const a=plan.actors.find(a=>a.sceneId===scenes.route_twenty_two.id&&a.name==='Blue');const script=byId[a.id].script;
+  let l=new Logic({...base,248:1},[1]);assert.equal(l.run(script).kind,'switch');assert.equal(l.get(19),57);
+  l=new Logic({...base,248:1,262:1});assert.equal(l.run(script),null);
+  l=new Logic({...base,248:1,262:1,12:1,150:1,151:1,152:1,180:1,181:1,182:1,183:1},[1]);assert.equal(l.run(script).kind,'switch');assert.equal(l.get(19),42);
+});
+test('Cerulean rival victory opens Nugget Bridge and each new trainer retires after a win',()=>{
+  const gate=byId[plan.triggers.find(t=>t.name==='north bridge').id].script;
+  assert.equal(new Logic(base).run(gate),null);assert.equal(new Logic({...base,263:1}).run(gate).args.sceneId,scenes.nugget_bridge.id);
+  for(let mode=57;mode<=65;mode++){const l=new Logic({...base,19:mode,20:1});for(let i=0;i<bossTeams[mode].team.length;i++)l.run(named.VICTORY.script);assert.equal(l.get(bossTeams[mode].flag),1);}
+  assert.equal(plan.actors.filter(a=>a.sceneId===scenes.route_three.id).length,8);
 });
 test('Surge lock requires ordered switches and Cut',()=>{
   const switches=plan.actors.filter(a=>a.sceneId===scenes.vermilion_gym.id&&a.name==='Electric Switch').sort((a,b)=>a.x-b.x);
@@ -128,9 +153,9 @@ test('Bill gives the ticket; Captain gives Cut; Giovanni needs the Lift Key',()=
   l=new Logic({...base,160:1},[1]);assert.equal(l.run(byId[boss.id].script).kind,'switch');assert.equal(l.get(19),8);
 });
 test('Forest trainers and later route trainers use distinct teams and win flags',()=>{
-  const modes=[11,14,15,16,25,26,27,28],flags=modes.map(m=>bossTeams[m].flag);
+  const modes=[11,14,15,25,26,27,28],flags=modes.map(m=>bossTeams[m].flag);
   assert.equal(new Set(flags).size,flags.length);
-  assert.ok(modes.every(m=>bossTeams[m].team.length>=2));
+  assert.ok(modes.every(m=>bossTeams[m].team.length>=1));
   assert.ok(new Set(modes.flatMap(m=>bossTeams[m].team.map(([pokemon])=>pokemon))).size>=8);
 });
 test('Paged PC menu reaches new species and keeps party and box counts consistent',()=>{
@@ -141,7 +166,7 @@ const pokemonVars=(dex,level=30)=>{const i=dexId(dex)-1;return i<8?{id:i+1,own:3
 const partner=(dex,level)=>{const p=pokemonVars(dex);return {1:p.id,0:level,2:level*4+24,3:level*4+24,25:1,10:1,[p.own]:1,[p.hp]:level*4+24,[p.member]:1,[p.level]:level};};
 test('All 151 species have an encounter, gift, or reachable evolution path',()=>{
   assert.equal(roster.length,151);assert.equal(new Set(roster.map(p=>p.dex)).size,151);
-  const reachable=new Set([...world.flatMap(s=>s.encounters||[]),...[1,4,7,106,107,122,131,133,138,140,142,143,144,145,146,150,151].map(dexId)]);
+  const reachable=new Set([...world.flatMap(s=>openingEncounters[s.key]?openingEncounters[s.key].map(([dex])=>dexId(dex)):s.encounters||[]),...[1,4,7,106,107,122,131,133,138,140,142,143,144,145,146,150,151].map(dexId)]);
   let changed=true;while(changed){changed=false;for(const p of roster)if(reachable.has(p.index))for(const e of p.evolutions)if(!reachable.has(e.to)){reachable.add(e.to);changed=true;}}
   assert.equal(reachable.size,151,roster.filter(p=>!reachable.has(p.index)).map(p=>p.name).join(', '));
 });
