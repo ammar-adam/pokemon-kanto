@@ -6,11 +6,12 @@ import { additionalSpecies, bossTeams, rivalVariants, world, roster, dexId } fro
 import { authorFullCampaign, travelMenu, journeyEvents } from './full-campaign.mjs';
 import { authorOpening } from './opening-story.mjs';
 import { authorRedProgression } from './red-progression.mjs';
+import { damageAuthoring, moveStats } from './battle-damage.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ids = JSON.parse(await readFile(path.join(root,'artwork/pokemon-resource-ids.json'),'utf8'));
 const art = JSON.parse(await readFile(path.join(root,'artwork/pokemon-asset-plan.json'),'utf8'));
-const species = roster;
+const species = roster.map(p=>({...p,moves:p.moves.map(m=>m==='BUG BITE'?(p.dex===13?'POISON STING':'TACKLE'):m)}));
 const uuid = key => { const h=createHash('sha256').update('frontier-game:'+key).digest('hex'); return `${h.slice(0,8)}-${h.slice(8,12)}-5${h.slice(13,16)}-b${h.slice(17,20)}-${h.slice(20,32)}`; };
 let serial = 0;
 const E = (command,args={},children) => ({id:uuid('kanto-event:'+serial++),command,args,...(children?{children}:{})});
@@ -55,7 +56,7 @@ const vars = {
   partyCount:25,rivalDone:26,starter:27,leechSeed:28,attackDrop:29,enemyAccuracy:68,paralysis:69,
   selectedSpecies:132,cash:133,checkpoint:134,encounterChoice:135,bossReturn:136,
   moveType:300,moveBonus:301,enemySleep:302,enemyPoison:303,evolutionMode:304,evolutionSource:305,evolutionDone:306,menuPage:307,attackerType:308,defenderType:309,defenderType2:310,
-  ...Object.fromEntries(species.flatMap((c,i)=>[['own '+c.name,own(i)],['hp '+c.name,hp(i)],['party '+c.name,member(i)],['level '+c.name,lv(i)],['xp '+c.name,xp(i)],...c.moves.map((m,j)=>['pp '+c.name+' '+(i>=20?j+' ':'')+m,pp(i,j)])])),
+  ...Object.fromEntries(species.flatMap((c,i)=>[['own '+c.name,own(i)],['hp '+c.name,hp(i)],['party '+c.name,member(i)],['level '+c.name,lv(i)],['xp '+c.name,xp(i)],...c.moves.map((m,j)=>['pp '+c.name+' '+(i>=20||c.moves.filter(n=>n===m).length>1?j+' ':'')+m,pp(i,j)])])),
   ...Object.fromEntries(species.map((c,i)=>['evolved '+c.name,retired(i)])),
   ...Object.fromEntries(Array.from({length:130},(_,i)=>150+i).map(i=>['quest '+i,i]))
 };
@@ -143,6 +144,7 @@ script('battlefield','hud',hud);
 
 const types=['NORMAL','FIRE','WATER','GRASS','ELECTRIC','ICE','FIGHTING','POISON','GROUND','FLYING','PSYCHIC','BUG','ROCK','GHOST','DRAGON'];
 function typeCode(type){return types.indexOf(type)+1;}
+const damage=damageAuthoring({species,IF,EX,V,set,math,chunked,shared,typeCode});
 const typeChart={
   NORMAL:[[],['ROCK'],['GHOST']],FIRE:[['GRASS','ICE','BUG'],['FIRE','WATER','ROCK','DRAGON'],[]],
   WATER:[['FIRE','GROUND','ROCK'],['WATER','GRASS','DRAGON'],[]],GRASS:[['WATER','GROUND','ROCK'],['FIRE','GRASS','POISON','FLYING','BUG','DRAGON'],[]],
@@ -154,14 +156,14 @@ const typeChart={
 };
 function effectiveness(attacker,defender,message=false){return [
   ...chunked('types_'+attacker,species.flatMap((c,i)=>[IF(attacker,'==',i+1,[set(308,typeCode(c.types[0]))]),IF(defender,'==',i+1,[set(309,typeCode(c.types[0])),set(310,typeCode(c.types[1]))])])),
-  ...(attacker===1?[IF(300,'>',0,[set(308,V(300))])]:[]),
-  ...chunked('chart',Object.entries(typeChart).map(([type,groups])=>IF(308,'==',typeCode(type),groups.flatMap((group,g)=>group.flatMap(target=>[309,310].map(variable=>IF(variable,'==',typeCode(target),g===2?[set(16,0)]:[math(16,g===0?'mul':'div',2)]))))))),
+  IF(300,'>',0,[set(308,V(300))]),
+  ...chunked('chart',Object.entries(typeChart).map(([type,groups])=>IF(308,'==',typeCode(type),groups.flatMap((group,g)=>group.flatMap(target=>[309,310].map(variable=>IF(variable,'==',typeCode(target),g===2?[set(16,0)]:g===0?[math(16,'mul',2)]:[IF(16,'>',0,[math(16,'div',2),IF(16,'==',0,[set(16,1)])])]))))))),
   ...(message?[IF(16,'==',0,[say('IT HAS NO EFFECT!')])]:[])
 ];}
-script('battlefield','attack',[set(16,V(0)),math(16,'add',6),math(16,'add',301,'var'),IF(14,'==',2,[math(16,'add',4)]),EX('$14$ == 2 || $300$ > 0',effectiveness(1,4,true)),rand(15,1,16),IF(15,'==',1,[math(16,'mul',2),say('A CRITICAL HIT!')]),math(5,'sub',16,'var'),IF(5,'<',0,[set(5,0)]),sfx(3),fx('enemy'),invoke('hud')]);
+script('battlefield','attack',[IF(300,'==',0,[set(300,1)]),IF(301,'<=',0,[set(301,40)]),...damage.base(1,4,0,7),...effectiveness(1,4,true),rand(15,1,16),IF(15,'==',1,[math(16,'mul',2),say('A CRITICAL HIT!')]),rand(15,217,255),...damage.variance(),math(5,'sub',16,'var'),IF(5,'<',0,[set(5,0)]),sfx(3),fx('enemy'),invoke('hud')]);
 
 script('battlefield','counter',[IF(302,'>',0,[math(302,'sub',1),say('THE FOE IS\nFAST ASLEEP.')],[
-  set(16,V(7)),math(16,'add',3),rand(15,1,3),IF(15,'==',1,[math(16,'add',2),...effectiveness(4,1)]),IF(29,'==',1,[math(16,'div',2)]),IF(17,'==',1,[math(16,'div',2),set(17,0)]),
+  set(300,1),set(301,40),rand(15,1,3),IF(15,'==',1,chunked('counter_type',species.map((p,i)=>IF(4,'==',i+1,[set(300,typeCode(p.types[0]))])))),...damage.base(4,1,7,0),...effectiveness(4,1),rand(15,217,255),...damage.variance(),IF(29,'==',1,[math(16,'div',2)]),IF(17,'==',1,[math(16,'div',2),set(17,0)]),
   rand(15,1,100),EX('($68$ == 1 && $15$ <= 30) || ($69$ == 1 && $15$ <= 25)',[set(16,0),say('THE FOE COULD\nNOT LAND A HIT.')],[say('THE FOE ATTACKS!')]),
   math(3,'sub',16,'var'),IF(3,'<',0,[set(3,0)]),...storeHP(),sfx(2),fx('partner'),invoke('hud')
 ])]);
@@ -213,28 +215,31 @@ const trainerVictory=Object.entries(bossTeams).filter(([mode])=>Number(mode)!==1
 script('battlefield','victory',[...storeHP(),sfx(7),say('FOE POKEMON\nFAINTED!'),math(11,'add',1),invoke('gain-xp'),IF(19,'==',1,[IF(20,'<',2,[math(20,'add',1),invoke('boss-config'),invoke('hud'),say('BROCK SENT\nOUT ONIX!')],[set(12,1),say(['BROCK:\nI TOOK YOU\nFOR GRANTED.','RED RECEIVED\nTHE BOULDER BADGE!','ROUTE THREE\nIS NOW OPEN.']),invoke('heal-all'),...loadHP(),...pop()])],[...trainerVictory,IF(19,'<=',3,[IF(19,'==',2,[math(26,'add',1),say('BLUE:\nSMELL YOU LATER!')]),IF(19,'==',3,[math(26,'add',2),say('YOUNGSTER:\nI LOST!')]),IF(19,'==',0,[IF(8,'<',20,[math(8,'add',1)]),say('FOUND A POKE BALL.')]),...pop()])])]);
 
 function selectedMove(c,i,j){
+  const original=moveStats(c.moves[j]);
+  const accurate=events=>original.accuracy>=100?events:[rand(15,1,100),IF(15,'<=',original.accuracy,events,[say('THE ATTACK MISSED!')])];
   if(i>=20){
     const move=c.moveData[j],effects={
-      damage:[set(300,typeCode(move.type)),set(301,Math.floor(move.power/12)),invoke('attack')],
+      damage:[set(300,typeCode(original.type)),set(301,Math.max(1,original.power)),invoke('attack')],
       heal:[math(3,'add',60),EX('$3$ > $2$',[set(3,V(2))]),...storeHP(),invoke('hud'),say('HP WAS RESTORED!')],
       seed:[set(28,1),say('THE FOE WAS\nSEEDED!')],paralyze:[set(69,1),say('THE FOE WAS\nPARALYZED!')],
       sleep:[set(302,2),say('THE FOE FELL\nASLEEP!')],poison:[set(303,1),say('THE FOE WAS\nPOISONED!')],
       attackDown:[set(29,1),say('FOE ATTACK FELL!')],accuracyDown:[set(68,1),say('FOE ACCURACY FELL!')],
       guard:[set(17,1),say('DEFENSE ROSE!')],splash:[say('NOTHING HAPPENED.')]
     };
-    return [IF(pp(i,j),'==',0,[say('NO PP LEFT.')],[math(pp(i,j),'sub',1),set(18,1),set(14,j+1),say(`${c.name}\nUSED ${c.moves[j]}!`),...effects[move.effect]])];
+    return [IF(pp(i,j),'==',0,[say('NO PP LEFT.')],[math(pp(i,j),'sub',1),set(18,1),set(14,j+1),say(`${c.name}\nUSED ${c.moves[j]}!`),...accurate(effects[move.effect])])];
   }
   const healMove=[11,12].includes(i)&&j===3;
   const attackMove=j<2||(i===18&&j===2);
-  const effect=attackMove?[invoke('attack')]:healMove?
+  const attack=[set(300,typeCode(original.type)),set(301,Math.max(1,original.power)),invoke('attack')];
+  const effect=attackMove?attack:healMove?
     [math(3,'add',20),EX('$3$ > $2$',[set(3,V(2))]),...storeHP(),invoke('hud'),say('HP WAS RESTORED!')]:
     j===2?([4,6].includes(i)?[set(17,1),say('DEFENSE ROSE!')]:[set(29,1),say('FOE ATTACK FELL!')]):
     i===0||i===7?[set(68,1),say('FOE ACCURACY FELL!')]:
     i===1||i===14||i===15?[set(28,1),say('FOE WAS SEEDED!')]:
     i===3||i===13?[set(69,1),say('FOE WAS PARALYZED!')]:
-    i===5?[invoke('attack'),set(16,V(16)),math(16,'div',2),math(3,'add',16,'var'),EX('$3$ > $2$',[set(3,V(2))]),...storeHP()]:
+    i===5?[...attack,set(16,V(16)),math(16,'div',2),math(3,'add',16,'var'),EX('$3$ > $2$',[set(3,V(2))]),...storeHP()]:
     [set(17,1),say('DEFENSE ROSE!')];
-  return [IF(pp(i,j),'==',0,[say('NO PP LEFT\nFOR THAT MOVE.')],[math(pp(i,j),'sub',1),set(18,1),set(14,j+1),set(300,0),set(301,0),say(`${c.name}\nUSED ${c.moves[j]}!`),...effect])];
+  return [IF(pp(i,j),'==',0,[say('NO PP LEFT\nFOR THAT MOVE.')],[math(pp(i,j),'sub',1),set(18,1),set(14,j+1),set(300,0),set(301,0),say(`${c.name}\nUSED ${c.moves[j]}!`),...accurate(effect)])];
 }
 function fight(indexes){return indexes.map(i=>{const c=species[i];return IF(1,'==',i+1,[EX(`$${pp(i,0)}$ + $${pp(i,1)}$ + $${pp(i,2)}$ + $${pp(i,3)}$ == 0`,[say(`${c.name}\nUSED STRUGGLE!`),set(14,1),set(300,0),set(301,0),invoke('attack'),math(3,'sub',4),IF(3,'<',0,[set(3,0)]),...storeHP(),set(18,1)],[say(`PP $${pp(i,0)}$/$${pp(i,1)}$/\n$${pp(i,2)}$/$${pp(i,3)}$`),menu(14,[...c.moves,'BACK'],true,'menu'),...c.moves.flatMap((_,j)=>IF(14,'==',j+1,selectedMove(c,i,j)))])])});}
 for(let i=0;i<5;i++)script('battlefield','fight'+i,fight(Array.from({length:4},(_,j)=>i*4+j)));

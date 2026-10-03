@@ -1,6 +1,22 @@
 # Pokemon Kanto: Opening Remake Preview
 
-## v0.4.0-alpha.2
+## v0.4.0-alpha.3
+
+The battle pass uses original base Attack, Defense, and combined Special stats
+for all 151 Pokemon, plus original damaging-move power/type and move accuracy.
+Damage includes same-type bonuses, type matchups, and a 217-255 random factor.
+Misses spend PP and a turn. Native arithmetic is checked against an independent
+reference across 2,718 player/enemy damage cases and a boundary-value matrix.
+Base data is pinned to a [pokered revision](https://github.com/pret/pokered/tree/d2704a63c26f9ba046ade877445216b3de0519a4).
+
+This is not yet the original battle engine: combat stats use fixed DV 9 and
+zero stat experience; HP growth, curated moves/PP, status effects, critical
+hits, fixed-damage/multi-hit moves, capture, and enemy move selection remain
+simplified. Enemy attacks still use a generic 40-power move. Damage is capped
+at 999 before type modifiers. Runtime speed, audio, saves, and gameplay have
+not been verified. Start a new save and treat this as a balance-test alpha.
+
+## Earlier Progression
 
 The progression pass adds Blue's early Route 22 and Cerulean fights, all eight
 Route 3 trainers, and Pewter's gym Camper. Route 22 no longer has endgame wild
@@ -27,7 +43,7 @@ exact original maps; the house is still one room. Encounter frequency, battle
 stats, move learning, dialogue, and later campaign areas remain simplified.
 There are 68 native scenes. The prior v0.3.0 campaign release is preserved.
 **Start a new save for this preview.** Controller play, saves, and hardware
-have not been verified. The 67 logic tests are source checks, not playtests.
+have not been verified. The 73 logic tests are source checks, not playtests.
 
 Encounter references: [Route One](https://github.com/pret/pokered/blob/master/data/wild/maps/Route1.asm)
 and [Viridian Forest](https://github.com/pret/pokered/blob/master/data/wild/maps/ViridianForest.asm).
@@ -76,7 +92,7 @@ checks the ROM hash and opens that guide; it does **not** flash a cartridge.
 Playing the ROM does not require Node, Python, GB Studio, or a connected device.
 
 D-pad moves/selects; A interacts/confirms; B cancels supported menus; Start
-opens the field menu. **Start a new game for v0.4.0-alpha.2.** Its progression and VM
+opens the field menu. **Start a new game for v0.4.0-alpha.3.** Its progression and VM
 memory layout are incompatible with older saves. Back up old `.sav` files.
 
 ## Edit And Test
