@@ -19,6 +19,18 @@ if (build.result.rom.sha256 !== sha256 || inspect.result.sha256 !== sha256 || !i
 const symbolsText=await readFile(build.result.debugArtifacts.noiPath,'utf8');
 const globalsText=await readFile(build.result.debugArtifacts.globalsPath,'utf8');
 const symbols=Object.fromEntries([...symbolsText.matchAll(/^DEF (\S+) 0x([0-9A-F]+)$/gmi)].map(m=>[m[1],parseInt(m[2],16)]));
+const scriptAddresses=Object.entries(symbols).filter(([name])=>name.startsWith('_script_')).map(([,address])=>address).sort((a,b)=>a-b);
+const compiledCalls=[];
+for(const [source,target]of [['learned_move_tackle','logic_attack'],['learned_move_rage','logic_attack'],['enemy_move_tackle','logic_hud']]){
+  const from=symbols['_script_kanto_'+source],to=symbols['_script_kanto_'+target];
+  if(!Number.isInteger(from)||!Number.isInteger(to))throw new Error('Missing compiled battle routine '+source+' / '+target);
+  const bank=from>>>16,address=from&0xffff,next=scriptAddresses.find(n=>n>from&&(n>>>16)===bank);
+  const offset=bank*0x4000+(address&0x3fff),end=next===undefined?(bank+1)*0x4000:bank*0x4000+(next&0x3fff);
+  // GBVM VM_CALL_FAR encodes opcode, address high, address low, bank.
+  const call=Buffer.from([0x0a,(to>>>8)&255,to&255,(to>>>16)&255]);
+  if(rom.subarray(offset,end).indexOf(call)<0)throw new Error('Export dropped battle call '+source+' -> '+target);
+  compiledCalls.push({source,target});
+}
 const variableOffsets=[...globalsText.matchAll(/^VAR_\w+ = (\d+)$/gm)].map(m=>Number(m[1]));
 const header=await readFile(path.join(root,'plugins/kanto-memory/engine/include/vm.h'),'utf8');
 const variableCapacity=Number(header.match(/#define VM_HEAP_SIZE (\d+)/)[1]);
@@ -32,6 +44,7 @@ const receipt = {
   colorMode: inspect.result.colorMode,
   cartridgeType: inspect.result.cartridgeTypeName,
   headerValid: inspect.result.valid,
+  compiledCalls,
   projectRevision: build.result.debugArtifacts?.sourceProvenance?.projectRevision || null,
   memory: { variableCount:variableOffsets.length, variableCapacity, dataEnd, reservedStackStart:symbols['.STACK'], gapBytes:symbols['.STACK']-dataEnd, runtimeStackVerified:false },
   sourceChecks: 'npm test passed locally; GitHub Actions checks source only',

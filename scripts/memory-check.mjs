@@ -22,6 +22,7 @@ assert.equal(new Set(plan.variables.map(v=>v.variableId)).size,plan.variables.le
 for(const id of refs)assert.ok(plan.variables.some(v=>v.variableId===id),'variable '+id+' has editor metadata');
 const scripts=new Map(plan.customScripts.map(s=>[s.id,s]));
 function checkEvents(events,owner){for(const e of events){
+  assert.notEqual(e.command,'EVENT_ACTOR_INVOKE','logic uses explicit custom calls; actor invoke can disappear during shared-script export');
   if(owner&&e.args?.actorId&&!['player','$self$'].includes(e.args.actorId))assert.ok(owner.actors[e.args.actorId],'shared actor binding exists');
   if(e.command==='EVENT_CALL_CUSTOM_EVENT'){
     const target=scripts.get(e.args.customEventId);assert.ok(target,'shared script target exists');

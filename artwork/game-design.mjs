@@ -328,6 +328,23 @@ for(const site of world.filter(s=>s.encounters&&s.key!=='route_one')){
 }
 authorOpening({plan,ids,uuid,E,IF,EX,N,V,set,math,rand,say,menu,script,actor,trigger,switchScene,position,hide,show,heal,loadHP,storage,pauseMenu,restorePP,startBattle,sfx,maxHPEvents});
 authorRedProgression({plan,ids,uuid,actor,trainer,IF,EX,say,menu,set,startBattle});
+// GB Studio cannot resolve actor-invoke targets passed through custom-script
+// actor parameters. Export logic routines as explicit far-callable scripts.
+const invokedActors=new Set();
+function visitAuthored(events,visit){for(const e of events){visit(e);for(const list of Object.values(e.children||{}))visitAuthored(list,visit);}}
+for(const s of [...plan.customScripts,...plan.scripts])visitAuthored(s.script||s.events,e=>{if(e.command==='EVENT_ACTOR_INVOKE')invokedActors.add(e.args.actorId);});
+const logicCalls=new Map();
+for(const actorId of invokedActors){
+  const owner=plan.scripts.find(s=>s.target.actorId===actorId&&s.target.scriptKey==='script');
+  if(!owner)throw new Error('Missing invoked actor logic '+actorId);
+  const name='logic_'+plan.actors.find(a=>a.id===actorId).name.toLowerCase().replace(/[^a-z0-9]+/g,'_');
+  const events=structuredClone(owner.events);
+  visitAuthored(events,e=>{e.id=uuid('logic-copy:'+actorId+':'+e.id);});
+  const [reference]=shared(name,events);logicCalls.set(actorId,reference.args.customEventId);
+}
+for(const s of [...plan.customScripts,...plan.scripts])visitAuthored(s.script||s.events,e=>{
+  if(e.command==='EVENT_ACTOR_INVOKE'){e.command='EVENT_CALL_CUSTOM_EVENT';e.args={customEventId:logicCalls.get(e.args.actorId)};}
+});
 const count = events => events.reduce((n,e)=>n+1+Object.values(e.children||{}).reduce((m,a)=>m+count(a),0),0);
 // A native script bank is small. Split independent event lists into shared calls.
 let bankSerial=0;
