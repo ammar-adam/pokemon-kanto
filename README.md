@@ -1,5 +1,12 @@
 # Pokemon Kanto: Opening Remake Preview
 
+## HP Follow-Up
+
+HP now uses each species' original base HP, fixed DV 9, and zero stat
+experience. Starters, wild encounters, trainer teams, healing, and gifts use
+the same formula. Level-up and evolution preserve missing HP and do not
+revive fainted Pokemon. This source milestone requires a fresh ROM build.
+
 ## v0.4.0-alpha.3
 
 The battle pass uses original base Attack, Defense, and combined Special stats

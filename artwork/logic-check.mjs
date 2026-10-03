@@ -23,7 +23,7 @@ function test(name,fn){fn();results.push({name,passed:true});console.log('PASS '
 class Halt { constructor(kind,args){this.kind=kind;this.args=args;} }
 // This executes authored event semantics for unit checks, not a ROM or emulator.
 class Logic {
-  constructor(vars={},choices=[],rolls=[]){this.v={...vars};this.choices=[...choices];this.rolls=[...rolls];this.trace=[];this.steps=0;this.saved=null;}
+  constructor(vars={},choices=[],rolls=[]){this.v={...vars};this.choices=[...choices];this.rolls=[...rolls];this.trace=[];this.text=[];this.steps=0;this.saved=null;}
   get(v){return this.v[v]||0;}
   val(x){
     if(x.type==='variable')return this.get(x.value);
@@ -35,6 +35,7 @@ class Logic {
   expression(e){const safe=e.replace(/\$(\d+)\$/g,(_,id)=>String(this.get(id)));assert.match(safe,/^[\d\s<>=!&|()+\-*/%.]+$/);return Function('return ('+safe+')')();}
   body(events){const labels=Object.fromEntries(events.flatMap((e,i)=>e.command==='EVENT_DEFINE_LABEL'?[[e.args.label,i]]:[]));for(let i=0;i<events.length;i++){try{this.event(events[i]);}catch(e){if(e instanceof Halt && e.kind==='goto' && labels[e.args]!==undefined)i=labels[e.args];else throw e;}}}
   event(e){assert.ok(++this.steps<100000,'bounded event execution');const a=e.args||{};this.trace.push(e.command);switch(e.command){
+    case 'EVENT_TEXT':this.text.push(...[].concat(a.text));break;
     case 'EVENT_SET_VALUE':this.v[a.variable]=this.val(a.value);break;
     case 'EVENT_RESET_VARIABLES':this.v={};break;
     case 'EVENT_VARIABLE_MATH':{const current=this.get(a.vectorX);let other=a.other==='var'?this.get(a.vectorY):a.value;
@@ -57,11 +58,12 @@ class Logic {
   }}
   run(events){try{this.body(events);return null;}catch(e){if(e instanceof Halt)return e;throw e;}}
 }
+const referenceHP=(dex,level)=>Math.floor((redStats[dex].hp+9)*level/50)+level+10;
 const base={0:3,1:2,2:36,3:36,4:3,5:28,6:28,7:3,8:6,9:3,10:1,11:0,12:0,19:0,25:1,27:2,31:1,41:36,51:1,60:3,61:3,62:3,63:3,...Object.fromEntries(Array.from({length:32},(_,i)=>[100+i,35]))};
-test('New game begins at home without a starter, Pokedex, or free balls',()=>{const l=new Logic({},[1]);const end=l.run(scenes.Title.script);assert.equal(end.kind,'switch');assert.equal(end.args.sceneId,scenes.red_house.id);assert.equal(l.get(0),5);assert.equal(l.get(2),44);assert.equal(l.get(8),0);assert.equal(l.get(1),0);assert.equal(l.get(248),0);assert.equal(l.get(133),3000);});
+test('New game begins at home without a starter, Pokedex, or free balls',()=>{const l=new Logic({},[1]);const end=l.run(scenes.Title.script);assert.equal(end.kind,'switch');assert.equal(end.args.sceneId,scenes.red_house.id);assert.equal(l.get(0),5);assert.equal(l.get(2),0);assert.equal(l.get(8),0);assert.equal(l.get(1),0);assert.equal(l.get(248),0);assert.equal(l.get(133),3000);});
 test('New game clears a prior collection and badge',()=>{const l=new Logic({12:1,30:1,31:1,32:1,10:3},[1]);l.run(scenes.Title.script);assert.equal(l.get(12),0);assert.equal(l.get(30),0);assert.equal(l.get(31),0);assert.equal(l.get(10),0);});
 test('Continue loads an existing journal without starting a new game',()=>{const l=new Logic({},[2]);l.saved={...base,12:1};assert.equal(l.run(scenes.Title.script).kind,'load');assert.equal(l.get(12),1);assert.equal(l.get(31),1);});
-test('Each starter ball grants exactly one level-five partner after meeting Oak',()=>{for(let starter=1;starter<=3;starter++){const l=new Logic({0:5,2:44},[1]);l.run(named['Professor Oak'].script);l.run(named[roster[starter-1].name+' Ball'].script);assert.equal(l.get(1),starter);assert.equal(l.get(29+starter),1);assert.equal(l.get(39+starter),44);assert.equal(l.get(49+starter),1);assert.equal(l.get(59+starter),5);assert.equal(l.get(100+(starter-1)*4),35);assert.equal(l.get(10),1);assert.equal(l.get(25),1);assert.equal(l.get(8),0);}});
+test('Each starter ball grants exactly one level-five partner after meeting Oak',()=>{for(let starter=1;starter<=3;starter++){const l=new Logic({0:5},[1]);l.run(named['Professor Oak'].script);l.run(named[roster[starter-1].name+' Ball'].script);assert.equal(l.get(1),starter);assert.equal(l.get(29+starter),1);assert.equal(l.get(39+starter),referenceHP(roster[starter-1].dex,5));assert.equal(l.get(3),l.get(2));assert.equal(l.get(49+starter),1);assert.equal(l.get(59+starter),5);assert.equal(l.get(100+(starter-1)*4),35);assert.equal(l.get(10),1);assert.equal(l.get(25),1);assert.equal(l.get(8),0);}});
 function referenceDamage(attacker,defender,level,enemyLevel,power,type,multipliers=[],critical=false,roll=255){
   const special=['FIRE','WATER','GRASS','ELECTRIC','ICE','PSYCHIC','DRAGON'].includes(type);
   const a=Math.floor((redStats[attacker][special?'special':'attack']+9)*level/50)+5,d=Math.floor((redStats[defender][special?'special':'defense']+9)*enemyLevel/50)+5;
@@ -93,21 +95,21 @@ test('Enemy attacks use their own stats and respect both random damage endpoints
   }
 });
 test('Heavy resistance still takes one damage while immunities remain zero',()=>{const l=new Logic({...base,0:1,7:100,4:dexId(31),300:8,301:15},[],[16,217]);l.run(named.ATTACK.script);assert.equal(l.get(16),1);});
-test('Low-HP catch is guaranteed and adds a species once',()=>{let l=new Logic({...base,4:4,5:9},[1],[100]);assert.equal(l.run(named.BAG.script).kind,'pop');assert.equal(l.get(33),1);assert.equal(l.get(43),36);assert.equal(l.get(10),2);assert.equal(l.get(8),5);l=new Logic({...base,4:4,5:9,33:1,10:2},[1],[100]);l.run(named.BAG.script);assert.equal(l.get(10),2);});
+test('Low-HP catch is guaranteed and adds a species once',()=>{let l=new Logic({...base,4:4,5:9},[1],[100]);assert.equal(l.run(named.BAG.script).kind,'pop');assert.equal(l.get(33),1);assert.equal(l.get(43),9);assert.equal(l.get(10),2);assert.equal(l.get(8),5);l=new Logic({...base,4:4,5:9,33:1,10:2},[1],[100]);l.run(named.BAG.script);assert.equal(l.get(10),2);});
 test('Full-HP catch boundary succeeds at 35 and fails at 36',()=>{for(const roll of [35,36]){const l=new Logic({...base,4:4},[1],[roll]);const end=l.run(named.BAG.script);assert.equal(end?.kind==='pop',roll===35);assert.equal(l.get(18),1);assert.equal(l.get(8),5);}});
 test('Mid-HP catch boundary succeeds at 75 and fails at 76',()=>{for(const roll of [75,76]){const l=new Logic({...base,4:4,5:14},[1],[roll]);const end=l.run(named.BAG.script);assert.equal(end?.kind==='pop',roll===75);}});
 test('No capsules or full HP consumes neither item nor turn',()=>{let l=new Logic({...base,8:0},[1]);l.run(named.BAG.script);assert.equal(l.get(18),0);assert.equal(l.get(8),0);l=new Logic(base,[2]);l.run(named.BAG.script);assert.equal(l.get(9),3);assert.equal(l.get(18),0);});
 test('Potion heals, clamps to maximum and persists individual HP',()=>{const l=new Logic({...base,3:20,41:20},[2]);l.run(named.BAG.script);assert.equal(l.get(3),36);assert.equal(l.get(41),36);assert.equal(l.get(9),2);assert.equal(l.get(18),1);});
 test('Champion opponents cannot be caught or escaped',()=>{const l=new Logic({...base,19:1},[1]);l.run(named.BAG.script);assert.equal(l.get(8),6);assert.equal(l.get(18),0);});
-test('Bag Back does not fall through to Party or Run',()=>{const l=new Logic(base,[2,3,4]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(3),36);assert.equal(l.choices.length,0);assert.ok(!l.trace.includes('EVENT_ACTOR_EFFECTS'));});
-test('Party switching spends one turn without accidentally running',()=>{const l=new Logic({...base,33:1,53:1,43:36},[3,4,4],[2]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(1),4);assert.equal(l.get(43),36-referenceDamage(7,25,3,3,40,'NORMAL'));});
-test('Fainting automatically brings in the next healthy owned partner',()=>{const l=new Logic({...base,3:1,41:1,32:1,52:1,42:36,5:100,6:100},[1,1,4],[2]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(41),0);assert.equal(l.get(1),3);assert.equal(l.get(3),36);});
-test('Full-party defeat heals and returns to an accessible town tile',()=>{const l=new Logic({...base,3:1,41:1,5:100,6:100},[1,1],[2]);const end=l.run(scenes.battlefield.script);assert.equal(end.kind,'switch');assert.equal(end.args.sceneId,scenes.fernvale.id);assert.equal(l.get(1),2);assert.equal(l.get(41),36);});
+test('Bag Back does not fall through to Party or Run',()=>{const l=new Logic(base,[2,3,4]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(3),referenceHP(1,3));assert.equal(l.choices.length,0);assert.ok(!l.trace.includes('EVENT_ACTOR_EFFECTS'));});
+test('Party switching spends one turn without accidentally running',()=>{const l=new Logic({...base,33:1,53:1,43:36},[3,4,4],[2]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(1),4);assert.equal(l.get(43),referenceHP(25,3)-referenceDamage(7,25,3,3,40,'NORMAL'));});
+test('Fainting automatically brings in the next healthy owned partner',()=>{const l=new Logic({...base,3:1,41:1,32:1,52:1,42:36,5:100,6:100},[1,1,4],[2]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(41),0);assert.equal(l.get(1),3);assert.equal(l.get(3),referenceHP(7,3));});
+test('Full-party defeat heals and returns to an accessible town tile',()=>{const l=new Logic({...base,3:1,41:1,5:100,6:100},[1,1],[2]);const end=l.run(scenes.battlefield.script);assert.equal(end.kind,'switch');assert.equal(end.args.sceneId,scenes.fernvale.id);assert.equal(l.get(1),2);assert.equal(l.get(41),referenceHP(1,3));});
 test('Nested overworld party menu cannot accidentally save',()=>{const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');const l=new Logic({...base,32:1,52:1,42:36},[1,3]);l.run(pause.children.true);assert.equal(l.get(1),3);assert.equal(l.saved,null);});
 test('Explicit Save produces a journal snapshot',()=>{const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');const l=new Logic(base,[3]);l.run(pause.children.true);assert.equal(l.saved[31],1);assert.equal(l.saved[0],3);});
-test('Brock advances from Geodude to level fourteen Onix and awards Boulder Badge',()=>{const l=new Logic({...base,19:1,20:1,5:0,71:5});l.run(named.VICTORY.script);assert.equal(l.get(20),2);assert.equal(l.get(4),7);assert.equal(l.get(7),14);assert.equal(l.get(0),4);assert.equal(l.get(2),40);assert.equal(l.run(named.VICTORY.script).kind,'pop');assert.equal(l.get(12),1);assert.equal(l.get(9),3);});
-test('Nurse Joy restores HP and PP without giving free items',()=>{const l=new Logic({...base,8:0,9:0,41:0,104:0,61:3});l.run(named['Nurse Joy'].script);assert.equal(l.get(41),36);assert.equal(l.get(104),35);assert.equal(l.get(61),3);assert.equal(l.get(8),0);assert.equal(l.get(9),0);});
-test('Six-Pokemon party sends a seventh unique catch to PC storage',()=>{const l=new Logic({...base,25:6,10:6,4:7,5:1,7:4},[1],[100]);assert.equal(l.run(named.BAG.script).kind,'pop');assert.equal(l.get(36),1);assert.equal(l.get(56),0);assert.equal(l.get(25),6);assert.equal(l.get(66),4);assert.equal(l.get(46),40);});
+test('Brock advances from Geodude to level fourteen Onix and awards Boulder Badge',()=>{const l=new Logic({...base,19:1,20:1,5:0,71:5});l.run(named.VICTORY.script);assert.equal(l.get(20),2);assert.equal(l.get(4),7);assert.equal(l.get(7),14);assert.equal(l.get(0),4);assert.equal(l.get(2),referenceHP(1,4));assert.equal(l.run(named.VICTORY.script).kind,'pop');assert.equal(l.get(12),1);assert.equal(l.get(9),3);});
+test('Nurse Joy restores HP and PP without giving free items',()=>{const l=new Logic({...base,8:0,9:0,41:0,104:0,61:3});l.run(named['Nurse Joy'].script);assert.equal(l.get(41),referenceHP(1,3));assert.equal(l.get(104),35);assert.equal(l.get(61),3);assert.equal(l.get(8),0);assert.equal(l.get(9),0);});
+test('Six-Pokemon party sends a seventh unique catch to PC storage',()=>{const l=new Logic({...base,25:6,10:6,4:7,5:1,7:4},[1],[100]);assert.equal(l.run(named.BAG.script).kind,'pop');assert.equal(l.get(36),1);assert.equal(l.get(56),0);assert.equal(l.get(25),6);assert.equal(l.get(66),4);assert.equal(l.get(46),1);});
 test('PC refuses depositing the last party member',()=>{const l=new Logic(base,[2]);l.run(named['Bills PC'].script);assert.equal(l.get(51),1);assert.equal(l.get(25),1);});
 test('PC deposits and withdraws with an exact six-member cap',()=>{let l=new Logic({...base,25:2,33:1,53:1,43:36},[4]);l.run(named['Bills PC'].script);assert.equal(l.get(53),0);assert.equal(l.get(25),1);l=new Logic({...base,33:1,25:6},[4]);l.run(named['Bills PC'].script);assert.equal(l.get(53),0);assert.equal(l.get(25),6);l=new Logic({...base,33:1},[4]);l.run(named['Bills PC'].script);assert.equal(l.get(53),1);assert.equal(l.get(25),2);});
 test('Boxed Pokemon cannot enter battle or replace a fainted party member',()=>{const l=new Logic({...base,33:1,53:0,43:36},[4]);l.run(named.PARTY.script);assert.equal(l.get(1),2);assert.equal(l.get(18),0);});
@@ -125,10 +127,10 @@ test('A move spends only its own individual PP',()=>{const l=new Logic(base,[1],
 test('An empty move and Back spend no PP or turn',()=>{let l=new Logic({...base,105:0},[2]);l.run(fight);assert.equal(l.get(104),35);assert.equal(l.get(105),0);assert.equal(l.get(18),0);l=new Logic(base,[5]);l.run(fight);assert.equal(l.get(18),0);assert.equal(l.get(104),35);});
 test('All PP empty enables Struggle with persistent recoil',()=>{const l=new Logic({...base,104:0,105:0,106:0,107:0},[],[16]);l.run(fight);assert.equal(l.get(5),28-referenceDamage(1,7,3,3,40,'NORMAL'));assert.equal(l.get(3),32);assert.equal(l.get(41),32);assert.equal(l.get(18),1);});
 test('Critical hit doubles damage before the random multiplier',()=>{const l=new Logic({...base,300:1,301:40},[],[1]);l.run(named.ATTACK.script);const hit=referenceDamage(1,7,3,3,40,'NORMAL',[],true);assert.equal(l.get(16),hit);assert.equal(l.get(5),28-hit);});
-test('Grass Leech Seed drains the foe and heals within maximum HP',()=>{const l=new Logic({...base,41:20},[1,4,4],[1]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(28),1);assert.equal(l.get(5),26);assert.equal(l.get(41),22-referenceDamage(7,1,3,3,40,'NORMAL'));assert.equal(l.get(107),34);});
+test('Grass Leech Seed drains the foe and heals within maximum HP',()=>{const l=new Logic({...base,41:20},[1,4,4],[1]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(28),1);assert.equal(l.get(5),26);assert.equal(l.get(41),referenceHP(1,3)-referenceDamage(7,1,3,3,40,'NORMAL'));assert.equal(l.get(107),34);});
 test('Pikachu Thunder Wave and Charmander Smokescreen set battle effects',()=>{let l=new Logic({...base,1:4},[4]);l.run(fight);assert.equal(l.get(69),1);l=new Logic({...base,1:1},[4]);l.run(fight);assert.equal(l.get(68),1);});
 test('PC preserves a valid lead even when the remaining party is fainted',()=>{const l=new Logic({...base,25:2,33:1,53:1,43:0},[2]);l.run(named['Bills PC'].script);assert.equal(l.get(1),4);assert.equal(l.get(25),1);assert.equal(l.get(3),0);});
-test('Individual experience levels only the battling Pokemon',()=>{const l=new Logic({...base,71:5,19:0});l.run(named.VICTORY.script);assert.equal(l.get(61),4);assert.equal(l.get(60),3);assert.equal(l.get(71),2);assert.equal(l.get(2),40);});
+test('Individual experience levels only the battling Pokemon',()=>{const l=new Logic({...base,71:5,19:0});l.run(named.VICTORY.script);assert.equal(l.get(61),4);assert.equal(l.get(60),3);assert.equal(l.get(71),2);assert.equal(l.get(2),referenceHP(1,4));});
 test('Every transition lands on clear two-tile player footing',()=>{for(const r of resources){for(const key of ['script','startScript']){function check(events){for(const e of events||[]){if(e.command==='EVENT_SWITCH_SCENE'){const s=byId[e.args.sceneId],x=e.args.x.value,y=e.args.y.value;const bytes=decodeResourceBytes(s.collisions,{maximumValues:s.width*s.height});assert.equal(bytes[y*s.width+x],0,`landing ${s.name} ${x},${y}`);assert.equal(bytes[y*s.width+x+1],0,`landing right ${s.name} ${x},${y}`);}for(const child of Object.values(e.children||{}))check(child);}}check(r[key]);}}});
 test('Home is reachable from the relocated laboratory exit',()=>{const s=scenes.fernvale,b=decodeResourceBytes(s.collisions,{maximumValues:s.width*s.height}),queue=[[23,23]],seen=new Set();let reachable=false;while(queue.length){const [x,y]=queue.shift(),k=`${x},${y}`;if(seen.has(k)||x<1||y<1||x+1>=s.width||y>=s.height||b[y*s.width+x]||b[y*s.width+x+1])continue;seen.add(k);if(x===7&&y===11)reachable=true;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]])queue.push([x+dx,y+dy]);}assert.ok(reachable);});
 test('Opening encounters use every weighted Red slot and its level',()=>{
@@ -147,7 +149,7 @@ test('Every gym leader fields the full Red team in order before awarding a badge
 });
 test('Blue changes his complete variable lineup for all three starters',()=>{
   for(const [mode,variants]of Object.entries(rivalVariants))for(const [starter,pairs]of Object.entries(variants))for(const [i,[dex,level]]of pairs.entries()){
-    const l=new Logic({...base,19:Number(mode),27:Number(starter),20:bossTeams[mode].team.length-pairs.length+i+1});l.run(named['BOSS-CONFIG'].script);assert.equal(l.get(4),dexId(dex));assert.equal(l.get(7),level);assert.equal(l.get(5),level*4+24);
+    const l=new Logic({...base,19:Number(mode),27:Number(starter),20:bossTeams[mode].team.length-pairs.length+i+1});l.run(named['BOSS-CONFIG'].script);assert.equal(l.get(4),dexId(dex));assert.equal(l.get(7),level);assert.equal(l.get(5),referenceHP(dex,level));
   }
 });
 test('Champion support Pokemon complement the chosen starter',()=>{
@@ -194,7 +196,7 @@ test('Paged PC menu reaches new species and keeps party and box counts consisten
   assert.equal(l.get(402),1);assert.equal(l.get(25),2);
 });
 const pokemonVars=(dex,level=30)=>{const i=dexId(dex)-1;return i<8?{id:i+1,own:30+i,hp:40+i,member:50+i,level:60+i,xp:70+i,retired:80+i}:{id:i+1,own:400+(i-8)*10,hp:401+(i-8)*10,member:402+(i-8)*10,level:403+(i-8)*10,xp:404+(i-8)*10,retired:409+(i-8)*10};};
-const partner=(dex,level)=>{const p=pokemonVars(dex);return {1:p.id,0:level,2:level*4+24,3:level*4+24,25:1,10:1,[p.own]:1,[p.hp]:level*4+24,[p.member]:1,[p.level]:level};};
+const partner=(dex,level)=>{const p=pokemonVars(dex),maximum=referenceHP(dex,level);return {1:p.id,0:level,2:maximum,3:maximum,25:1,10:1,[p.own]:1,[p.hp]:maximum,[p.member]:1,[p.level]:level};};
 test('All 151 species have an encounter, gift, or reachable evolution path',()=>{
   assert.equal(roster.length,151);assert.equal(new Set(roster.map(p=>p.dex)).size,151);
   const reachable=new Set([...world.flatMap(s=>openingEncounters[s.key]?openingEncounters[s.key].map(([dex])=>dexId(dex)):s.encounters||[]),...[1,4,7,106,107,122,131,133,138,140,142,143,144,145,146,150,151].map(dexId)]);
@@ -204,7 +206,7 @@ test('All 151 species have an encounter, gift, or reachable evolution path',()=>
 test('Level evolution preserves the party slot, level and Pokedex history',()=>{
   const from=pokemonVars(10),to=pokemonVars(11),l=new Logic({...partner(10,6),[from.xp]:11,7:1});
   l.run(named['GAIN-XP'].script);
-  assert.equal(l.get(1),to.id);assert.equal(l.get(to.level),7);assert.equal(l.get(to.hp),52);
+  assert.equal(l.get(1),to.id);assert.equal(l.get(to.level),7);assert.equal(l.get(to.hp),referenceHP(11,7));
   assert.equal(l.get(from.member),0);assert.equal(l.get(from.retired),1);assert.equal(l.get(from.own),1);
   assert.equal(l.get(to.member),1);assert.equal(l.get(25),1);assert.equal(l.get(10),2);
 });
@@ -223,6 +225,27 @@ test('The local trade service evolves Kadabra without deleting collection histor
 test('Training reaches level 100 and never exceeds it',()=>{
   const p=pokemonVars(151),l=new Logic({...partner(151,99),[p.xp]:197,7:1});l.run(named['GAIN-XP'].script);assert.equal(l.get(p.level),100);
   l.v[7]=100;l.run(named['GAIN-XP'].script);assert.equal(l.get(p.level),100);
+});
+test('All species heal to their base-stat HP at every supported level',()=>{
+  for(let level=1;level<=100;level++){
+    const vars={};for(const p of roster){const v=pokemonVars(p.dex);Object.assign(vars,{[v.own]:1,[v.level]:level,[v.hp]:1});}
+    const l=new Logic(vars);l.run(named['HEAL-ALL'].script);
+    for(const p of roster)assert.equal(l.get(pokemonVars(p.dex).hp),referenceHP(p.dex,level),`${p.name} L${level}`);
+  }
+});
+test('Level-up preserves missing HP and does not revive a fainted partner',()=>{
+  for(const hp of [0,1,referenceHP(151,40)-7]){
+    const p=pokemonVars(151),l=new Logic({...partner(151,40),3:hp,[p.hp]:hp,[p.xp]:79,7:1});
+    l.run(named['GAIN-XP'].script);
+    assert.equal(l.get(p.hp),hp===0?0:hp+referenceHP(151,41)-referenceHP(151,40));
+    assert.equal(l.get(2),referenceHP(151,41));
+  }
+});
+test('Evolution preserves damage instead of fully healing the new species',()=>{
+  const p=pokemonVars(133),l=new Logic({...partner(133,25),3:referenceHP(133,25)-8,[p.hp]:referenceHP(133,25)-8},[1]);
+  l.run(named['Evolution Expert'].script);
+  assert.equal(l.get(pokemonVars(134).hp),referenceHP(134,25)-8);
+  assert.equal(l.get(2),referenceHP(134,25));
 });
 test('The Master Ball guarantees a wild catch and cannot catch trainer Pokemon',()=>{
   const l=new Logic({...base,202:1,4:dexId(150),5:300,6:304,7:70},[4]);assert.equal(l.run(named.BAG.script).kind,'pop');assert.equal(l.get(202),0);assert.equal(l.get(pokemonVars(150).own),1);

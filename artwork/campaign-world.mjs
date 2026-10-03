@@ -148,7 +148,7 @@ Object.assign(bossTeams,{
   55:{name:'CHANNELER',team:team([92,27],[93,29]),flag:242},
   56:{name:'ENGINEER',team:team([82,36],[101,37],[125,39]),flag:243}
 });
-// Red/Blue species and levels; HP remains the homebrew battle model.
+// Red/Blue species and levels; battle authoring derives HP from base stats.
 export const redTeams={
   1:[[74,12],[95,14]],4:[[120,18],[121,21]],
   5:[[100,21],[25,18],[26,24]],6:[[71,29],[114,24],[45,29]],

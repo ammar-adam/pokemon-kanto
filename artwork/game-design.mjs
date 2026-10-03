@@ -7,6 +7,7 @@ import { authorFullCampaign, travelMenu, journeyEvents } from './full-campaign.m
 import { authorOpening } from './opening-story.mjs';
 import { authorRedProgression } from './red-progression.mjs';
 import { damageAuthoring, moveStats } from './battle-damage.mjs';
+import { hpAuthoring } from './hp-stats.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ids = JSON.parse(await readFile(path.join(root,'artwork/pokemon-resource-ids.json'),'utf8'));
@@ -85,8 +86,10 @@ function actor(scene,key,name,sprite,x,y,events=[],properties={}) { plan.actors.
 function trigger(scene,key,x,y,width,height,events) {plan.triggers.push({sceneId:ids.scenes[scene],id:uuid('trigger:'+key),name:key,x,y,width,height});script(scene,key,events,'script','trigger');}
 const ppMax = [35,25,20,15];
 const restorePP = i => (i<20?ppMax:species[i].moveData.map(m=>m.pp)).map((n,j)=>set(pp(i,j),n));
-const heal = () => chunked('heal',species.flatMap((_,i)=>[set(16,V(lv(i))),math(16,'mul',4),math(16,'add',24),set(hp(i),V(16)),...restorePP(i)]),32);
-const loadHP = () => chunked('load_hp',species.map((_,i)=>IF(1,'==',i+1,[set(0,V(lv(i))),set(2,V(0)),math(2,'mul',4),math(2,'add',24),set(3,V(hp(i)))])));
+const {maxHPEvents,clampHPEvents,resizeHPEvents}=hpAuthoring({species,IF,EX,V,set,math,chunked});
+const heal = () => chunked('heal',species.map((_,i)=>EX(`$${own(i)}$ == 1 && $${retired(i)}$ == 0`,[...maxHPEvents(i+1,lv(i),hp(i)),...restorePP(i)])),32);
+const loadPokemonHP = i => [set(0,V(lv(i))),...maxHPEvents(i+1,0,2),...clampHPEvents(hp(i),2),set(3,V(hp(i)))];
+const loadHP = () => chunked('load_hp',species.map((_,i)=>IF(1,'==',i+1,loadPokemonHP(i))));
 const storeHP = () => chunked('store_hp',species.map((_,i)=>IF(1,'==',i+1,[set(hp(i),V(3))])));
 const living = () => [set(1,0),...chunked('living',species.map((_,i)=>EX(`$1$ == 0 && $${member(i)}$ == 1 && $${hp(i)}$ > 0`,[set(1,i+1)]))),...loadHP()];
 const firstParty = () => [set(1,0),...chunked('first_party',species.map((_,i)=>EX(`$1$ == 0 && $${member(i)}$ == 1`,[set(1,i+1)]))),...loadHP()];
@@ -104,7 +107,7 @@ function speciesMenu(variable=13){
 }
 
 function partyView() {
-  return [say('PARTY $25$/6\nPOKE BALLS $8$\nPOTIONS $9$'),...speciesMenu(),...chunked('party_view',species.map((c,i)=>IF(132,'==',i+1,[IF(member(i),'==',1,[say(`${c.name}\nLV $${lv(i)}$ HP $${hp(i)}$\n${c.type}`),IF(hp(i),'>',0,[set(1,i+1),set(0,V(lv(i))),set(2,V(0)),math(2,'mul',4),math(2,'add',24),set(3,V(hp(i))),say(`${c.name}\nLEADS THE PARTY.`)],[say('NEEDS REST.')])],[IF(retired(i),'==',1,[say('THIS POKEMON\nHAS EVOLVED.')],[IF(own(i),'==',1,[say('IN THE PC BOX.')],[say('NOT CAUGHT YET.')])])])])) )];
+  return [say('PARTY $25$/6\nPOKE BALLS $8$\nPOTIONS $9$'),...speciesMenu(),...chunked('party_view',species.map((c,i)=>IF(132,'==',i+1,[IF(member(i),'==',1,[say(`${c.name}\nLV $${lv(i)}$ HP $${hp(i)}$\n${c.type}`),IF(hp(i),'>',0,[set(1,i+1),...loadPokemonHP(i),say(`${c.name}\nLEADS THE PARTY.`)],[say('NEEDS REST.')])],[IF(retired(i),'==',1,[say('THIS POKEMON\nHAS EVOLVED.')],[IF(own(i),'==',1,[say('IN THE PC BOX.')],[say('NOT CAUGHT YET.')])])])])) )];
 }
 function pokedex(){return [say(`POKEDEX\nCAUGHT $10$/${species.length}`),...speciesMenu(),...chunked('pokedex',species.map((c,i)=>IF(132,'==',i+1,[IF(own(i),'==',1,[say(`NO. ${c.dex}\n${c.name}\n${c.type} POKEMON`)],[say(`${c.name}\nNO DATA YET.`)])])) )];}
 function storage(){return [say('BILL\'S PC\nPARTY $25$/6'),...speciesMenu(),...chunked('storage',species.map((c,i)=>IF(132,'==',i+1,[EX(`$${own(i)}$ == 0 || $${retired(i)}$ == 1`,[say('NO POKEMON OF\nTHIS SPECIES IN\nYOUR COLLECTION.')],[IF(member(i),'==',1,[IF(25,'>',1,[set(member(i),0),math(25,'sub',1),IF(1,'==',i+1,[set(1,0)]),say('DEPOSITED\nIN THE PC BOX.')],[say('KEEP ONE POKEMON\nIN YOUR PARTY.')])],[IF(25,'<',6,[set(member(i),1),math(25,'add',1),say('WITHDREW POKEMON.')],[say('PARTY IS FULL.\nDEPOSIT ONE FIRST.')])])])])) ),IF(1,'==',0,firstParty())];}
@@ -113,9 +116,9 @@ function pauseMenu() {
 }
 for(const scene of world.map(s=>s.key).filter(s=>s in ids.scenes)) script(scene,scene,[show('player'),pauseMenu()], 'script','scene');
 
-script('title','title',[hide('player'),E('EVENT_REMOVE_INPUT_SCRIPT',{input:['start','select']}),label('title_menu'),menu(13,['NEW GAME','CONTINUE'],false),IF(13,'==',2,[E('EVENT_IF_SAVED_DATA',{saveSlot:0},{true:[E('EVENT_LOAD_DATA',{saveSlot:0})],false:[say('NO SAVE FILE YET.'),go('title_menu')]})]),IF(13,'==',1,[E('EVENT_RESET_VARIABLES'),set(0,5),set(2,44),set(8,6),set(9,3),set(22,1),say(['PROF. OAK:\nWELCOME TO THE\nWORLD OF POKEMON!','RED, YOUR JOURNEY\nBEGINS IN PALLET\nTOWN.','CHOOSE YOUR FIRST\nPOKEMON AT MY LAB.']),switchScene('laboratory',9,12,'up')]),go('title_menu')],'script','scene');
+script('title','title',[hide('player'),E('EVENT_REMOVE_INPUT_SCRIPT',{input:['start','select']}),label('title_menu'),menu(13,['NEW GAME','CONTINUE'],false),IF(13,'==',2,[E('EVENT_IF_SAVED_DATA',{saveSlot:0},{true:[E('EVENT_LOAD_DATA',{saveSlot:0})],false:[say('NO SAVE FILE YET.'),go('title_menu')]})]),IF(13,'==',1,[E('EVENT_RESET_VARIABLES'),set(0,5),set(2,0),set(8,6),set(9,3),set(22,1),say(['PROF. OAK:\nWELCOME TO THE\nWORLD OF POKEMON!','RED, YOUR JOURNEY\nBEGINS IN PALLET\nTOWN.','CHOOSE YOUR FIRST\nPOKEMON AT MY LAB.']),switchScene('laboratory',9,12,'up')]),go('title_menu')],'script','scene');
 
-const starter = [IF(1,'==',0,[say('PROF. OAK:\nWHICH POKEMON\nWILL YOU CHOOSE?'),menu(13,species.slice(0,3).map(c=>c.name),false),set(1,V(13)),set(27,V(13)),...species.slice(0,3).map((c,i)=>IF(1,'==',i+1,[set(30+i,1),set(50+i,1),set(60+i,5),set(40+i,V(2)),...restorePP(i),sfx(6),say(`${c.name} JOINS\nYOUR PARTY!`)])),set(10,1),set(25,1),say(['HERE IS A POKEDEX,\nSIX POKE BALLS,\nAND THREE POTIONS.','BLUE IS WAITING\nOUTSIDE THE LAB.','EXPLORE ROUTE 1.\nTHEN WIN THE\nBOULDER BADGE!'])],[say('PROF. OAK:\nHOW IS YOUR\nPOKEDEX COMING?')])];
+const starter = [IF(1,'==',0,[say('PROF. OAK:\nWHICH POKEMON\nWILL YOU CHOOSE?'),menu(13,species.slice(0,3).map(c=>c.name),false),set(1,V(13)),set(27,V(13)),...species.slice(0,3).map((c,i)=>IF(1,'==',i+1,[set(30+i,1),set(50+i,1),set(60+i,5),...maxHPEvents(i+1,60+i,40+i),...loadPokemonHP(i),...restorePP(i),sfx(6),say(`${c.name} JOINS\nYOUR PARTY!`)])),set(10,1),set(25,1),say(['HERE IS A POKEDEX,\nSIX POKE BALLS,\nAND THREE POTIONS.','BLUE IS WAITING\nOUTSIDE THE LAB.','EXPLORE ROUTE 1.\nTHEN WIN THE\nBOULDER BADGE!'])],[say('PROF. OAK:\nHOW IS YOUR\nPOKEDEX COMING?')])];
 actor('laboratory','prof','Professor Oak','oak',9,8,starter);
 trigger('laboratory','leave lab',8,17,4,1,[IF(1,'==',0,[say('CHOOSE A PARTNER\nBEFORE YOU LEAVE.'),position(9,15)],[switchScene('fernvale',7,13)])]);
 trigger('fernvale','enter lab',7,12,2,1,[switchScene('laboratory',9,15,'up')]);
@@ -132,7 +135,7 @@ actor('arena','champion','Brock','brock',9,5,champion);
 actor('arena','judge','Gym Guide','oak',3,10,[say('WATER AND GRASS\nWORK WELL AGAINST\nROCK POKEMON.')]);
 
 const patches=[{x:4,y:5,h:7,types:[2,4]},{x:20,y:5,h:7,types:[1,7]},{x:4,y:15,h:6,types:[3,5]},{x:20,y:15,h:6,types:[6,5]},{x:4,y:24,h:4,types:[8,4]}];
-for(let p=0;p<patches.length;p++){const a=patches[p];for(let y=a.y;y<a.y+a.h;y+=2){trigger('route_one',`grass ${p} ${y}`,a.x,y,8,1,[IF(21,'==',1,[set(21,0)],[rand(15,1,3),IF(15,'==',1,[set(19,0),rand(15,0,1),IF(15,'==',0,[set(4,a.types[0])],[set(4,a.types[1])]),rand(7,2,4),set(6,V(7)),math(6,'mul',4),math(6,'add',12),set(5,V(6)),...startBattle()])])]);}}
+for(let p=0;p<patches.length;p++){const a=patches[p];for(let y=a.y;y<a.y+a.h;y+=2){trigger('route_one',`grass ${p} ${y}`,a.x,y,8,1,[IF(21,'==',1,[set(21,0)],[rand(15,1,3),IF(15,'==',1,[set(19,0),rand(15,0,1),IF(15,'==',0,[set(4,a.types[0])],[set(4,a.types[1])]),rand(7,2,4),...maxHPEvents(V(4),7,6),set(5,V(6)),...startBattle()])])]);}}
 
 actor('battlefield','enemy','Opponent','charmander',14,7,[],{collisionGroup:'none'});
 actor('battlefield','partner','Partner','charmander',2,11,[],{collisionGroup:'none'});
@@ -168,11 +171,12 @@ script('battlefield','counter',[IF(302,'>',0,[math(302,'sub',1),say('THE FOE IS\
   math(3,'sub',16,'var'),IF(3,'<',0,[set(3,0)]),...storeHP(),sfx(2),fx('partner'),invoke('hud')
 ])]);
 
-script('battlefield','party',[...speciesMenu(),...species.map((c,i)=>IF(132,'==',i+1,[EX(`$${member(i)}$ == 1 && $${hp(i)}$ > 0`,[IF(1,'==',i+1,[say('ALREADY IN BATTLE.')],[set(1,i+1),set(0,V(lv(i))),set(2,V(0)),math(2,'mul',4),math(2,'add',24),set(3,V(hp(i))),set(18,1),set(17,0),invoke('hud'),say(`GO, ${c.name}!`)])],[say('NOT IN PARTY\nOR NEEDS REST.')])]))]);
+script('battlefield','party',[...speciesMenu(),...species.map((c,i)=>IF(132,'==',i+1,[EX(`$${member(i)}$ == 1 && $${hp(i)}$ > 0`,[IF(1,'==',i+1,[say('ALREADY IN BATTLE.')],[set(1,i+1),...loadPokemonHP(i),set(18,1),set(17,0),invoke('hud'),say(`GO, ${c.name}!`)])],[say('NOT IN PARTY\nOR NEEDS REST.')])]))]);
 
-function registerPokemon(){return chunked('register',species.map((c,i)=>IF(4,'==',i+1,[
+function registerPokemon(caught=false){return chunked(caught?'register_caught':'register',species.map((c,i)=>IF(4,'==',i+1,[
   EX(`$${own(i)}$ == 0 || $${retired(i)}$ == 1`,[
-    IF(own(i),'==',0,[set(own(i),1),math(10,'add',1)]),set(retired(i),0),set(lv(i),V(7)),set(xp(i),0),set(hp(i),V(7)),math(hp(i),'mul',4),math(hp(i),'add',24),...restorePP(i),
+    IF(own(i),'==',0,[set(own(i),1),math(10,'add',1)]),set(retired(i),0),set(lv(i),V(7)),set(xp(i),0),
+    ...(caught?[...maxHPEvents(i+1,lv(i),16),set(hp(i),V(5)),...clampHPEvents(hp(i),16)]:maxHPEvents(i+1,lv(i),hp(i))),...restorePP(i),
     IF(25,'<',6,[set(member(i),1),math(25,'add',1)],[say('PARTY FULL.\nSENT TO BILL\'S PC.')])
   ],[say('ALREADY IN YOUR\nCOLLECTION.')]),say(`${c.name}\nWAS REGISTERED!`)
 ])));}
@@ -180,19 +184,19 @@ function capture(master=false){return [IF(19,'!=',0,[say('DO NOT STEAL\nA TRAINE
   IF(master?202:8,'==',0,[say(master?'NO MASTER BALL.':'NO POKE BALLS\nLEFT.')],[
     math(master?202:8,'sub',1),set(18,1),
     ...(master?[set(15,1)]:[rand(15,1,100),set(16,V(6)),math(16,'div',3),EX('$5$ <= $16$ || $15$ <= 35',[set(15,1)],[set(16,V(6)),math(16,'div',2),EX('$5$ <= $16$ && $15$ <= 75',[set(15,1)],[set(15,0)])])]),
-    sfx(4),fx('enemy'),IF(15,'==',1,[...registerPokemon(),sfx(7),...pop()],[say('IT BROKE FREE!')])
+    sfx(4),fx('enemy'),IF(15,'==',1,[...registerPokemon(true),sfx(7),...pop()],[say('IT BROKE FREE!')])
   ])
 ])];}
 script('battlefield','bag',[menu(13,['POKE BALL','POTION','BACK','MASTER BALL']),IF(13,'==',1,capture()),IF(13,'==',4,capture(true)),IF(13,'==',2,[IF(9,'==',0,[say('NO POTIONS LEFT.')],[EX('$3$ >= $2$',[say('HP IS ALREADY FULL.')],[math(9,'sub',1),math(3,'add',20),EX('$3$ > $2$',[set(3,V(2))]),...storeHP(),set(18,1),invoke('hud'),sfx(6),say('POTION RESTORED HP.')])])])]);
 
 function configureBoss(){return [
-  ...Object.entries(bossTeams).map(([mode,team])=>IF(19,'==',Number(mode),team.team.map(([pokemon,level,max],i)=>IF(20,'==',i+1,[set(4,pokemon),set(7,level),set(6,max)])))),
-  IF(19,'==',2,[IF(27,'==',1,[set(4,3)]),IF(27,'==',2,[set(4,1)]),IF(27,'==',3,[set(4,2)]),set(7,5),set(6,32)]),
-  ...Object.entries(rivalVariants).map(([mode,variants])=>IF(19,'==',Number(mode),Object.entries(variants).map(([starter,pairs])=>IF(27,'==',Number(starter),pairs.map(([dex,level],i)=>IF(20,'==',bossTeams[mode].team.length-pairs.length+i+1,[set(4,dexId(dex)),set(7,level),set(6,level*4+24)])))))),
-  IF(19,'==',3,[set(4,8),set(7,6),set(6,32)]),set(5,V(6)),set(28,0),set(29,0),set(68,0),set(69,0),set(302,0),set(303,0)];}
+  ...Object.entries(bossTeams).map(([mode,team])=>IF(19,'==',Number(mode),team.team.map(([pokemon,level],i)=>IF(20,'==',i+1,[set(4,pokemon),set(7,level)])))),
+  IF(19,'==',2,[IF(27,'==',1,[set(4,3)]),IF(27,'==',2,[set(4,1)]),IF(27,'==',3,[set(4,2)]),set(7,5)]),
+  ...Object.entries(rivalVariants).map(([mode,variants])=>IF(19,'==',Number(mode),Object.entries(variants).map(([starter,pairs])=>IF(27,'==',Number(starter),pairs.map(([dex,level],i)=>IF(20,'==',bossTeams[mode].team.length-pairs.length+i+1,[set(4,dexId(dex)),set(7,level)])))))),
+  IF(19,'==',3,[set(4,8),set(7,6)]),...maxHPEvents(V(4),7,6),set(5,V(6)),set(28,0),set(29,0),set(68,0),set(69,0),set(302,0),set(303,0)];}
 script('battlefield','boss-config',configureBoss());
 script('battlefield','heal-all',heal());
-const gainXP=()=>species.map((c,i)=>IF(1,'==',i+1,[math(xp(i),'add',7,'var'),set(16,V(lv(i))),math(16,'mul',2),EX(`$${xp(i)}$ >= $16$ && $${lv(i)}$ < 100`,[math(xp(i),'sub',16,'var'),math(lv(i),'add',1),math(hp(i),'add',4),set(0,V(lv(i))),set(2,V(0)),math(2,'mul',4),math(2,'add',24),set(3,V(hp(i))),say(`${c.name}\nGREW TO LV $0$!`)])]));
+const gainXP=()=>species.map((c,i)=>IF(1,'==',i+1,[math(xp(i),'add',7,'var'),set(16,V(lv(i))),math(16,'mul',2),EX(`$${xp(i)}$ >= $16$ && $${lv(i)}$ < 100`,[math(xp(i),'sub',16,'var'),...maxHPEvents(i+1,lv(i),16),math(lv(i),'add',1),set(0,V(lv(i))),...maxHPEvents(i+1,0,2),...resizeHPEvents(hp(i),16,2),set(3,V(hp(i))),say(`${c.name}\nGREW TO LV $0$!`)])]));
 function evolve(){
   const itemModes={'water-stone':1,'thunder-stone':2,'fire-stone':3,'leaf-stone':4,'moon-stone':5};
   return [set(305,V(1)),set(306,0),...chunked('evolution',species.flatMap((c,i)=>c.evolutions.map(e=>{
@@ -200,7 +204,8 @@ function evolve(){
     if(e.trigger==='level-up'&&!e.level)return null;
     return EX(`$305$ == ${i+1} && $306$ == 0 && $304$ == ${mode} && $${member(i)}$ == 1 && $${lv(i)}$ >= ${e.level||1} && ($${own(target)}$ == 0 || $${retired(target)}$ == 1)`,[
       say(`WHAT? ${c.name}\nIS EVOLVING!`),IF(own(target),'==',0,[set(own(target),1),math(10,'add',1)]),
-      set(retired(target),0),set(retired(i),1),set(member(i),0),set(member(target),1),set(lv(target),V(lv(i))),set(xp(target),V(xp(i))),set(hp(target),V(hp(i))),set(hp(i),0),...restorePP(target),set(1,e.to),set(306,1),sfx(7),say(`IT EVOLVED INTO\n${species[target].name}!`)
+      set(retired(target),0),set(retired(i),1),set(member(i),0),set(member(target),1),set(lv(target),V(lv(i))),set(xp(target),V(xp(i))),set(hp(target),V(hp(i))),
+      ...maxHPEvents(i+1,lv(i),16),...maxHPEvents(e.to,lv(target),2),...resizeHPEvents(hp(target),16,2),set(hp(i),0),...restorePP(target),set(1,e.to),set(306,1),sfx(7),say(`IT EVOLVED INTO\n${species[target].name}!`)
     ]);
   }).filter(Boolean))),...loadHP()];
 }
@@ -333,15 +338,15 @@ actor('celadon_gym','erika','Erika','trainer-erika',9,5,[IF(152,'==',1,[say('ERI
 script('red_house','red_house',[show('player'),pauseMenu()],'script','scene');
 for(const scene of ['viridian','pewter','cerulean','vermilion','lavender','celadon'])actor(scene,scene+' pc','Bills PC','oak',18,16,storage());
 actor('bill_house','bill pc','Bills PC','oak',14,8,storage());
-authorFullCampaign({actor,trainer,enter,trigger,IF,EX,say,menu,set,math,V,startBattle,switchScene,heal,loadHP,storage,evolve,registerPokemon,save,plan,ids,script,sfx});
+authorFullCampaign({actor,trainer,enter,trigger,IF,EX,say,menu,set,math,V,startBattle,switchScene,heal,loadHP,storage,evolve,registerPokemon,save,plan,ids,script,sfx,maxHPEvents});
 for(const site of world.filter(s=>s.encounters&&s.key!=='route_one')){
   const candidates=site.encounters;
   const patches=['cave','hideout','bridge'].includes(site.kind)?[[0,14,7],[1,14,12],[2,14,20],[3,14,25]]:[[0,4,5],[1,20,5],[2,4,21],[3,20,21]];
   for(const [patch,x,y]of patches)for(const dy of [0,2]){
-    trigger(site.key,`wild ${site.key} ${patch} ${dy}`,x,y+dy,['cave','hideout','bridge'].includes(site.kind)?4:8,1,[IF(21,'==',1,[set(21,0)],[rand(15,1,3),IF(15,'==',1,[set(19,0),rand(135,1,candidates.length),...candidates.map((id,i)=>IF(135,'==',i+1,[set(4,id)])),rand(7,Math.max(2,site.level-2),site.level+2),set(6,V(7)),math(6,'mul',4),math(6,'add',12),set(5,V(6)),...startBattle()])])]);
+    trigger(site.key,`wild ${site.key} ${patch} ${dy}`,x,y+dy,['cave','hideout','bridge'].includes(site.kind)?4:8,1,[IF(21,'==',1,[set(21,0)],[rand(15,1,3),IF(15,'==',1,[set(19,0),rand(135,1,candidates.length),...candidates.map((id,i)=>IF(135,'==',i+1,[set(4,id)])),rand(7,Math.max(2,site.level-2),site.level+2),...maxHPEvents(V(4),7,6),set(5,V(6)),...startBattle()])])]);
   }
 }
-authorOpening({plan,ids,uuid,E,IF,EX,N,V,set,math,rand,say,menu,script,actor,trigger,switchScene,position,hide,show,heal,loadHP,storage,pauseMenu,restorePP,startBattle,sfx});
+authorOpening({plan,ids,uuid,E,IF,EX,N,V,set,math,rand,say,menu,script,actor,trigger,switchScene,position,hide,show,heal,loadHP,storage,pauseMenu,restorePP,startBattle,sfx,maxHPEvents});
 authorRedProgression({plan,ids,uuid,actor,trainer,IF,EX,say,menu,set,startBattle});
 const count = events => events.reduce((n,e)=>n+1+Object.values(e.children||{}).reduce((m,a)=>m+count(a),0),0);
 // A native script bank is small. Split independent event lists into shared calls.

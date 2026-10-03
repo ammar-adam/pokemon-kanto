@@ -7,7 +7,7 @@ export const openingEncounters={
  mt_moon:[[41,8,20],[41,7,20],[41,9,15],[74,8,10],[41,6,10],[41,10,10],[74,10,5],[46,8,5],[41,11,4],[35,8,1]]
 };
 export function authorOpening(h){
- const {plan,ids,uuid,E,IF,EX,N,V,set,math,rand,say,menu,script,actor,trigger,switchScene,position,hide,show,heal,loadHP,storage,pauseMenu,restorePP,startBattle,sfx}=h;
+ const {plan,ids,uuid,E,IF,EX,N,V,set,math,rand,say,menu,script,actor,trigger,switchScene,position,hide,show,heal,loadHP,storage,pauseMenu,restorePP,startBattle,sfx,maxHPEvents}=h;
  const change=(key,events,type='actor')=>{const s=plan.scripts.find(s=>s.target[type+'Id']===uuid(type+':'+key)&&s.target.scriptKey==='script');if(!s)throw new Error('Missing opening script '+key);s.events=events;};
  const move=(key,x,y,name)=>{const a=plan.actors.find(a=>a.id===uuid('actor:'+key));Object.assign(a,{x,y,...(name?{name}:{})});};
  const doorway=(key,x,y,events)=>{const t=plan.triggers.find(t=>t.id===uuid('trigger:'+key));Object.assign(t,{x,y});change(key,events,'trigger');};
@@ -29,7 +29,7 @@ export function authorOpening(h){
  ]);
  for(const [starter,x]of [[2,8],[3,11],[1,14]]){
    const names={1:'CHARMANDER',2:'BULBASAUR',3:'SQUIRTLE'};
-   actor('laboratory','starter ball '+starter,names[starter]+' Ball','logic',x,7,[IF(1,'==',0,[IF(246,'==',1,[say(names[starter]+' IS INSIDE\nTHIS POKE BALL.'),menu(13,['CHOOSE','LOOK AGAIN']),IF(13,'==',1,[set(1,starter),set(27,starter),set(29+starter,1),set(49+starter,1),set(59+starter,5),set(39+starter,44),set(0,5),set(2,44),set(3,44),...restorePP(starter-1),set(10,1),set(25,1),sfx(7),say(names[starter]+'\nIS YOUR FIRST\nPARTNER!')])],[say('TALK TO OAK\nBEFORE CHOOSING.')])],[say('THE REMAINING\nPOKEMON STAYS\nWITH PROFESSOR OAK.')])]);
+   actor('laboratory','starter ball '+starter,names[starter]+' Ball','logic',x,7,[IF(1,'==',0,[IF(246,'==',1,[say(names[starter]+' IS INSIDE\nTHIS POKE BALL.'),menu(13,['CHOOSE','LOOK AGAIN']),IF(13,'==',1,[set(1,starter),set(27,starter),set(29+starter,1),set(49+starter,1),set(59+starter,5),set(0,5),...maxHPEvents(starter,0,2),set(3,V(2)),set(39+starter,V(2)),...restorePP(starter-1),set(10,1),set(25,1),sfx(7),say(names[starter]+'\nIS YOUR FIRST\nPARTNER!')])],[say('TALK TO OAK\nBEFORE CHOOSING.')])],[say('THE REMAINING\nPOKEMON STAYS\nWITH PROFESSOR OAK.')])]);
  }
  const rival=[say('BLUE: HOLD ON!\nLET US SEE WHO\nPICKED BETTER.'),set(19,2),set(20,1),...startBattle()];
  actor('laboratory','opening blue','Blue','blue',7,12,[IF(26,'==',0,[IF(1,'==',0,[say('BLUE: GO AHEAD.\nPICK YOUR\nPOKEMON FIRST.')],rival)],[say('BLUE: I AM\nHEADING FOR THE\nPOKEMON LEAGUE.')])]);
@@ -63,7 +63,7 @@ export function authorOpening(h){
  for(const area of Object.keys(openingEncounters)){
    const records=openingEncounters[area];let threshold=0;
    const choose=records.map(([dex,level,weight],i)=>{const low=threshold;threshold+=weight;return EX(`$135$ > ${low} && $135$ <= ${threshold}`,[set(4,dexId(dex)),set(7,level)]);});
-   for(const t of plan.triggers.filter(t=>t.sceneId===ids.scenes[area]&&(t.name.startsWith('grass ')||t.name.startsWith('wild '))))change(t.name,[IF(21,'==',1,[set(21,0)],[rand(15,1,100),IF(15,'<=',area==='forest'?12:20,[set(19,0),rand(135,1,100),...choose,set(6,V(7)),math(6,'mul',4),math(6,'add',12),set(5,V(6)),...startBattle()])])],'trigger');
+   for(const t of plan.triggers.filter(t=>t.sceneId===ids.scenes[area]&&(t.name.startsWith('grass ')||t.name.startsWith('wild '))))change(t.name,[IF(21,'==',1,[set(21,0)],[rand(15,1,100),IF(15,'<=',area==='forest'?12:20,[set(19,0),rand(135,1,100),...choose,...maxHPEvents(V(4),7,6),set(5,V(6)),...startBattle()])])],'trigger');
  }
  // Redirect recovery and travel away from the lab's new footprint.
  const relocate=events=>{for(const e of events){if(e.command==='EVENT_SWITCH_SCENE'){
