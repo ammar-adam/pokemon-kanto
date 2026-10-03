@@ -5,7 +5,7 @@ export const world = [
   {key:'fernvale',name:'PALLET TOWN',kind:'town',theme:'coral'},
   {key:'route_one',name:'ROUTE ONE',kind:'route',level:4,encounters:[8,10]},
   {key:'viridian',name:'VIRIDIAN CITY',kind:'town',theme:'canopy'},
-  {key:'forest',name:'VIRIDIAN FOREST',kind:'forest',level:6,encounters:[9,17,18,4,19,20]},
+  {key:'forest',name:'VIRIDIAN FOREST',kind:'forest',level:6,encounters:[dexId(13),dexId(14),dexId(11),dexId(10),dexId(25)]},
   {key:'pewter',name:'PEWTER CITY',kind:'town',theme:'stone'},
   {key:'route_three',name:'ROUTE THREE',kind:'route',level:9,encounters:[8,10,17,18]},
   {key:'mt_moon',name:'MT MOON',kind:'cave',level:11,encounters:[5,6,11]},

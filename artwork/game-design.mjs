@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { additionalSpecies, bossTeams, world, roster, dexId } from './campaign-world.mjs';
 import { authorFullCampaign, travelMenu, journeyEvents } from './full-campaign.mjs';
+import { authorOpening } from './opening-story.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ids = JSON.parse(await readFile(path.join(root,'artwork/pokemon-resource-ids.json'),'utf8'));
@@ -82,7 +83,7 @@ function actor(scene,key,name,sprite,x,y,events=[],properties={}) { plan.actors.
 function trigger(scene,key,x,y,width,height,events) {plan.triggers.push({sceneId:ids.scenes[scene],id:uuid('trigger:'+key),name:key,x,y,width,height});script(scene,key,events,'script','trigger');}
 const ppMax = [35,25,20,15];
 const restorePP = i => (i<20?ppMax:species[i].moveData.map(m=>m.pp)).map((n,j)=>set(pp(i,j),n));
-const heal = () => [...chunked('heal',species.flatMap((_,i)=>[set(16,V(lv(i))),math(16,'mul',4),math(16,'add',24),set(hp(i),V(16)),...restorePP(i)]),32),IF(9,'<',3,[set(9,3)]),IF(8,'<',6,[set(8,6)])];
+const heal = () => chunked('heal',species.flatMap((_,i)=>[set(16,V(lv(i))),math(16,'mul',4),math(16,'add',24),set(hp(i),V(16)),...restorePP(i)]),32);
 const loadHP = () => chunked('load_hp',species.map((_,i)=>IF(1,'==',i+1,[set(0,V(lv(i))),set(2,V(0)),math(2,'mul',4),math(2,'add',24),set(3,V(hp(i)))])));
 const storeHP = () => chunked('store_hp',species.map((_,i)=>IF(1,'==',i+1,[set(hp(i),V(3))])));
 const living = () => [set(1,0),...chunked('living',species.map((_,i)=>EX(`$1$ == 0 && $${member(i)}$ == 1 && $${hp(i)}$ > 0`,[set(1,i+1)]))),...loadHP()];
@@ -335,6 +336,7 @@ for(const site of world.filter(s=>s.encounters&&s.key!=='route_one')){
     trigger(site.key,`wild ${site.key} ${patch} ${dy}`,x,y+dy,['cave','hideout','bridge'].includes(site.kind)?4:8,1,[IF(21,'==',1,[set(21,0)],[rand(15,1,3),IF(15,'==',1,[set(19,0),rand(135,1,candidates.length),...candidates.map((id,i)=>IF(135,'==',i+1,[set(4,id)])),rand(7,Math.max(2,site.level-2),site.level+2),set(6,V(7)),math(6,'mul',4),math(6,'add',12),set(5,V(6)),...startBattle()])])]);
   }
 }
+authorOpening({plan,ids,uuid,E,IF,EX,N,V,set,math,rand,say,menu,script,actor,trigger,switchScene,position,hide,show,heal,loadHP,storage,pauseMenu,restorePP,startBattle,sfx});
 const count = events => events.reduce((n,e)=>n+1+Object.values(e.children||{}).reduce((m,a)=>m+count(a),0),0);
 // A native script bank is small. Split independent event lists into shared calls.
 let bankSerial=0;

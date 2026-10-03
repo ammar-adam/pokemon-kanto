@@ -9,7 +9,8 @@ async function walk(dir){for(const entry of await readdir(dir,{withFileTypes:tru
 await walk(path.join(root,'project'));
 const operationsFor=sceneId=>[
   ...plan.actors.filter(a=>a.sceneId===sceneId&&!known.has(a.id)).map(a=>({type:'actor.create',id:a.id,name:a.name,spriteSheetId:a.spriteSheetId,x:a.x,y:a.y,direction:a.direction,properties:a.properties})),
-  ...plan.actors.filter(a=>a.sceneId===sceneId&&known.has(a.id)&&byId.get(a.id).spriteSheetId!==a.spriteSheetId).map(a=>({type:'actor.update',actorId:a.id,spriteSheetId:a.spriteSheetId})),
-  ...plan.triggers.filter(t=>t.sceneId===sceneId&&!known.has(t.id)).map(t=>({type:'trigger.create',id:t.id,name:t.name,x:t.x,y:t.y,width:t.width,height:t.height}))
+  ...plan.actors.filter(a=>a.sceneId===sceneId&&known.has(a.id)&&['spriteSheetId','name','x','y'].some(k=>byId.get(a.id)[k]!==a[k])).map(a=>({type:'actor.update',actorId:a.id,spriteSheetId:a.spriteSheetId,name:a.name,x:a.x,y:a.y})),
+  ...plan.triggers.filter(t=>t.sceneId===sceneId&&!known.has(t.id)).map(t=>({type:'trigger.create',id:t.id,name:t.name,x:t.x,y:t.y,width:t.width,height:t.height})),
+  ...plan.triggers.filter(t=>t.sceneId===sceneId&&known.has(t.id)&&['x','y','width','height'].some(k=>byId.get(t.id)[k]!==t[k])).map(t=>({type:'trigger.update',triggerId:t.id,x:t.x,y:t.y,width:t.width,height:t.height}))
 ];
 console.log(JSON.stringify(sceneId==='all'?[...new Set([...plan.actors,...plan.triggers].map(o=>o.sceneId))].map(id=>({sceneId:id,operations:operationsFor(id)})).filter(g=>g.operations.length):operationsFor(sceneId)));

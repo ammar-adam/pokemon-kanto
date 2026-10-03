@@ -1,4 +1,25 @@
-# Pokemon Kanto: Champion Quest
+# Pokemon Kanto: Opening Remake Preview
+
+## v0.4.0-alpha.1
+
+This branch starts a more faithful opening, not a finished recreation of Red/Blue.
+Start at home, meet Oak, choose one of three starter balls, battle Blue, collect
+Oak's parcel at Viridian Mart, and return it to unlock the Pokedex and northern
+path. Viridian now has separate Mart and Pokemon Center interiors. Purchases
+cost money; healing no longer restocks items. Route One and Viridian Forest use
+Red's ten weighted species/level slots, including rare wild Pikachu.
+
+Six opening backgrounds have new color artwork. These are custom layouts, not
+exact original maps; the house is still one room. Encounter frequency, battle
+stats, move learning, dialogue, and later campaign areas remain simplified.
+There are 68 native scenes. The prior v0.3.0 campaign release is preserved.
+**Start a new save for this preview.** Controller play, saves, and hardware
+have not been verified. The 62 logic tests are source checks, not playtests.
+
+Encounter references: [Route One](https://github.com/pret/pokered/blob/master/data/wild/maps/Route1.asm)
+and [Viridian Forest](https://github.com/pret/pokered/blob/master/data/wild/maps/ViridianForest.asm).
+
+## Campaign Foundation
 
 An unofficial, custom Game Boy Color fan game with a compact Kanto journey
 from Pallet Town to the Hall of Fame. This is original homebrew source, not a
@@ -9,15 +30,15 @@ copy of the commercial Pokemon Red/Blue ROM or its full game engine.
 Choose Charmander, Bulbasaur, or Squirtle at Oak's lab, battle Blue, travel
 through Viridian Forest and Mt. Moon, meet Bill, board the S.S. Anne, confront
 Team Rocket, challenge all eight gyms, and conquer the Elite Four and Blue.
-The project has 66 scenes, including 64 campaign areas, title and battle scenes.
+The opening remake builds on the earlier compact campaign.
 
 - All 151 first-generation Pokemon have encounter, gift, or evolution paths.
 - Level and stone evolution, a local trade-evolution service, shops, Fly travel,
   Master Ball, and postgame legendary encounters.
 - Tower rescue, Safari Zone, Silph Co., Seafoam, Cinnabar Mansion, Victory Road,
   the League, Power Plant, Cerulean Cave, and a postgame reserve.
-- Viridian Forest encounters include Caterpie, Weedle, Metapod, Pikachu,
-  Butterfree, and Beedrill. Other routes and caves have distinct encounter pools.
+- Viridian Forest encounters include Caterpie, Weedle, Metapod, Kakuna,
+  and Pikachu. Other routes and caves have distinct encounter pools.
 - Bug Catchers, Scouts, Hikers, Lass, Sailor, Rocket Grunts, Blue, Giovanni,
   and gym leaders have different teams and one-time victory flags.
 - Four moves per species, PP, type interactions, experience, party switching,
@@ -42,7 +63,7 @@ checks the ROM hash and opens that guide; it does **not** flash a cartridge.
 Playing the ROM does not require Node, Python, GB Studio, or a connected device.
 
 D-pad moves/selects; A interacts/confirms; B cancels supported menus; Start
-opens the field menu. **Start a new game for v0.3.0.** Its expanded roster and VM
+opens the field menu. **Start a new game for v0.4.0-alpha.1.** Its progression and VM
 memory layout are incompatible with older saves. Back up old `.sav` files.
 
 ## Edit And Test
