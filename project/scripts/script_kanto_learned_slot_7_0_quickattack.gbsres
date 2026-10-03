@@ -1,0 +1,110 @@
+{
+  "_resourceType": "script",
+  "id": "ef58b23b-e40f-5eb2-bb02-7333b965d306",
+  "name": "Kanto learned_slot_7_0_quickattack",
+  "symbol": "script_kanto_learned_slot_7_0_quickattack",
+  "description": "Shared Kanto game logic",
+  "variables": {},
+  "actors": {
+    "162d2e75-812d-5cb6-b976-cf88bbc3ab29": {
+      "id": "162d2e75-812d-5cb6-b976-cf88bbc3ab29",
+      "name": "ATTACK"
+    }
+  },
+  "script": [
+    {
+      "id": "52fe51b7-a38e-4845-bde2-dae2e454a16b",
+      "command": "EVENT_IF",
+      "args": {
+        "condition": {
+          "type": "lte",
+          "valueA": {
+            "type": "variable",
+            "value": "128"
+          },
+          "valueB": {
+            "type": "number",
+            "value": 0
+          }
+        }
+      },
+      "children": {
+        "true": [
+          {
+            "id": "acaa5895-ac67-4ac5-8a32-9bd5ddfea269",
+            "command": "EVENT_TEXT",
+            "args": {
+              "text": [
+                "NO PP LEFT\nFOR THAT MOVE."
+              ],
+              "minHeight": 4,
+              "maxHeight": 5,
+              "textHeight": 3,
+              "closeButton": "a",
+              "speedIn": 0,
+              "speedOut": 0
+            }
+          }
+        ],
+        "false": [
+          {
+            "id": "196bcb5e-7847-4e91-9f15-2956e1fad29e",
+            "command": "EVENT_VARIABLE_MATH",
+            "args": {
+              "vectorX": "128",
+              "operation": "sub",
+              "other": "val",
+              "value": 1,
+              "clamp": false
+            }
+          },
+          {
+            "id": "e703e5a7-51e3-478c-ae46-70dba0b9fa29",
+            "command": "EVENT_SET_VALUE",
+            "args": {
+              "variable": "18",
+              "value": {
+                "type": "number",
+                "value": 1
+              }
+            }
+          },
+          {
+            "id": "d9b69c48-2ccb-45b6-a8d8-b12eb35486cf",
+            "command": "EVENT_SET_VALUE",
+            "args": {
+              "variable": "14",
+              "value": {
+                "type": "number",
+                "value": 1
+              }
+            }
+          },
+          {
+            "id": "c43f40a1-3ff3-4a47-8b29-b7aedd3504a4",
+            "command": "EVENT_TEXT",
+            "args": {
+              "text": [
+                "USED QUICK\nATTACK!"
+              ],
+              "minHeight": 4,
+              "maxHeight": 5,
+              "textHeight": 3,
+              "closeButton": "a",
+              "speedIn": 0,
+              "speedOut": 0
+            }
+          },
+          {
+            "id": "e99c3be8-b7e2-488b-a8c5-e4fd714614c0",
+            "command": "EVENT_CALL_CUSTOM_EVENT",
+            "args": {
+              "customEventId": "6bce7141-c307-58d6-b017-6a9654320397",
+              "$actor[162d2e75-812d-5cb6-b976-cf88bbc3ab29]$": "162d2e75-812d-5cb6-b976-cf88bbc3ab29"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

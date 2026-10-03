@@ -1,0 +1,146 @@
+{
+  "_resourceType": "script",
+  "id": "6273d096-d5a7-524f-bc6f-80308fb46a98",
+  "name": "Kanto learned_move_recover",
+  "symbol": "script_kanto_learned_move_recover",
+  "description": "Shared Kanto game logic",
+  "variables": {},
+  "actors": {
+    "464c0352-bc12-56a7-bc8b-44ffc7ba3a81": {
+      "id": "464c0352-bc12-56a7-bc8b-44ffc7ba3a81",
+      "name": "HUD"
+    }
+  },
+  "script": [
+    {
+      "id": "6c73fd3b-33bd-492a-9873-6dd328286632",
+      "command": "EVENT_SET_VALUE",
+      "args": {
+        "variable": "16",
+        "value": {
+          "type": "number",
+          "value": 0
+        }
+      }
+    },
+    {
+      "id": "09ab34c0-c772-40e1-88b3-c53b0f3d064d",
+      "command": "EVENT_IF",
+      "args": {
+        "condition": {
+          "type": "expression",
+          "value": "$3$ < $2$"
+        }
+      },
+      "children": {
+        "true": [
+          {
+            "id": "247e3422-3016-486e-8b56-38b181908614",
+            "command": "EVENT_SET_VALUE",
+            "args": {
+              "variable": "16",
+              "value": {
+                "type": "variable",
+                "value": "2"
+              }
+            }
+          },
+          {
+            "id": "cbea7431-29d8-407f-b06e-ad1ee1a444f4",
+            "command": "EVENT_VARIABLE_MATH",
+            "args": {
+              "vectorX": "16",
+              "operation": "div",
+              "other": "val",
+              "value": 2,
+              "clamp": false
+            }
+          },
+          {
+            "id": "231fa930-5861-4352-82fe-8a551a088fe4",
+            "command": "EVENT_VARIABLE_MATH",
+            "args": {
+              "vectorX": "3",
+              "operation": "add",
+              "other": "var",
+              "vectorY": "16",
+              "clamp": false
+            }
+          },
+          {
+            "id": "656eeb89-4607-4bc5-b826-0101c51ae559",
+            "command": "EVENT_IF",
+            "args": {
+              "condition": {
+                "type": "expression",
+                "value": "$3$ > $2$"
+              }
+            },
+            "children": {
+              "true": [
+                {
+                  "id": "5bc991a1-db64-4672-86f3-659c5e94181d",
+                  "command": "EVENT_SET_VALUE",
+                  "args": {
+                    "variable": "3",
+                    "value": {
+                      "type": "variable",
+                      "value": "2"
+                    }
+                  }
+                }
+              ],
+              "false": []
+            }
+          },
+          {
+            "id": "0bb7dfa3-8b8c-4ad8-9e90-1989b2fec161",
+            "command": "EVENT_CALL_CUSTOM_EVENT",
+            "args": {
+              "customEventId": "6d1a8682-7953-53fb-bdfa-c7fb3586c554"
+            }
+          },
+          {
+            "id": "6143f8d3-0e62-49cc-8e9b-04416a8931f3",
+            "command": "EVENT_ACTOR_INVOKE",
+            "args": {
+              "actorId": "464c0352-bc12-56a7-bc8b-44ffc7ba3a81"
+            }
+          },
+          {
+            "id": "a74b1327-1b24-4f7e-a8d9-e05d70c0f59f",
+            "command": "EVENT_TEXT",
+            "args": {
+              "text": [
+                "HP WAS RESTORED!"
+              ],
+              "minHeight": 4,
+              "maxHeight": 5,
+              "textHeight": 3,
+              "closeButton": "a",
+              "speedIn": 0,
+              "speedOut": 0
+            }
+          }
+        ],
+        "false": [
+          {
+            "id": "ad246161-0522-4942-bc5c-5d0c973f4729",
+            "command": "EVENT_TEXT",
+            "args": {
+              "text": [
+                "BUT IT FAILED!"
+              ],
+              "minHeight": 4,
+              "maxHeight": 5,
+              "textHeight": 3,
+              "closeButton": "a",
+              "speedIn": 0,
+              "speedOut": 0
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

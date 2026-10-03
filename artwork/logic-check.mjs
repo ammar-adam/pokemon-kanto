@@ -124,11 +124,11 @@ test('Lab exit requires a starter and the opening rival victory',()=>{const t=pl
 const fight=named.FIGHT.script;
 test('A 95-percent move hits at 95 and misses at 96 while spending PP and a turn',()=>{for(const roll of [95,96]){const l=new Logic(base,[1],[roll,16,255]);l.run(fight);assert.equal(l.get(104),34);assert.equal(l.get(18),1);assert.equal(l.get(5)<28,roll===95);assert.equal(l.get(3),36);}});
 test('A move spends only its own individual PP',()=>{const l=new Logic(base,[1],[16]);l.run(fight);assert.equal(l.get(104),34);assert.equal(l.get(105),35);assert.equal(l.get(18),1);});
-test('An empty move and Back spend no PP or turn',()=>{let l=new Logic({...base,105:0},[2]);l.run(fight);assert.equal(l.get(104),35);assert.equal(l.get(105),0);assert.equal(l.get(18),0);l=new Logic(base,[5]);l.run(fight);assert.equal(l.get(18),0);assert.equal(l.get(104),35);});
-test('All PP empty enables Struggle with persistent recoil',()=>{const l=new Logic({...base,104:0,105:0,106:0,107:0},[],[16]);l.run(fight);assert.equal(l.get(5),28-referenceDamage(1,7,3,3,40,'NORMAL'));assert.equal(l.get(3),32);assert.equal(l.get(41),32);assert.equal(l.get(18),1);});
+test('An empty move and Back spend no PP or turn',()=>{let l=new Logic({...base,105:0},[2]);l.run(fight);assert.equal(l.get(104),35);assert.equal(l.get(105),0);assert.equal(l.get(18),0);l=new Logic(base,[3]);l.run(fight);assert.equal(l.get(18),0);assert.equal(l.get(104),35);});
+test('All PP empty enables Struggle with persistent recoil',()=>{const l=new Logic({...base,104:0,105:0,106:0,107:0},[],[16]);l.run(fight);assert.equal(l.get(5),28-referenceDamage(1,7,3,3,50,'NORMAL'));assert.equal(l.get(3),32);assert.equal(l.get(41),32);assert.equal(l.get(18),1);});
 test('Critical hit doubles damage before the random multiplier',()=>{const l=new Logic({...base,300:1,301:40},[],[1]);l.run(named.ATTACK.script);const hit=referenceDamage(1,7,3,3,40,'NORMAL',[],true);assert.equal(l.get(16),hit);assert.equal(l.get(5),28-hit);});
-test('Grass Leech Seed drains the foe and heals within maximum HP',()=>{const l=new Logic({...base,41:20},[1,4,4],[1]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(28),1);assert.equal(l.get(5),26);assert.equal(l.get(41),referenceHP(1,3)-referenceDamage(7,1,3,3,40,'NORMAL'));assert.equal(l.get(107),34);});
-test('Pikachu Thunder Wave and Charmander Smokescreen set battle effects',()=>{let l=new Logic({...base,1:4},[4]);l.run(fight);assert.equal(l.get(69),1);l=new Logic({...base,1:1},[4]);l.run(fight);assert.equal(l.get(68),1);});
+test('Grass Leech Seed drains the foe and heals within maximum HP',()=>{const l=new Logic({...base,0:7,61:7,41:20},[1,3,4],[1]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(28),1);assert.equal(l.get(5),26);assert.equal(l.get(41),22-referenceDamage(7,1,3,7,40,'NORMAL'));assert.equal(l.get(106),34);});
+test('Pikachu Thunder Wave and Pidgey Sand Attack set battle effects',()=>{let l=new Logic({...base,1:4,63:9},[3]);l.run(fight);assert.equal(l.get(69),1);l=new Logic({...base,1:8,67:5},[2]);l.run(fight);assert.equal(l.get(68),1);});
 test('PC preserves a valid lead even when the remaining party is fainted',()=>{const l=new Logic({...base,25:2,33:1,53:1,43:0},[2]);l.run(named['Bills PC'].script);assert.equal(l.get(1),4);assert.equal(l.get(25),1);assert.equal(l.get(3),0);});
 test('Individual experience levels only the battling Pokemon',()=>{const l=new Logic({...base,71:5,19:0});l.run(named.VICTORY.script);assert.equal(l.get(61),4);assert.equal(l.get(60),3);assert.equal(l.get(71),2);assert.equal(l.get(2),referenceHP(1,4));});
 test('Every transition lands on clear two-tile player footing',()=>{for(const r of resources){for(const key of ['script','startScript']){function check(events){for(const e of events||[]){if(e.command==='EVENT_SWITCH_SCENE'){const s=byId[e.args.sceneId],x=e.args.x.value,y=e.args.y.value;const bytes=decodeResourceBytes(s.collisions,{maximumValues:s.width*s.height});assert.equal(bytes[y*s.width+x],0,`landing ${s.name} ${x},${y}`);assert.equal(bytes[y*s.width+x+1],0,`landing right ${s.name} ${x},${y}`);}for(const child of Object.values(e.children||{}))check(child);}}check(r[key]);}}});
@@ -246,6 +246,14 @@ test('Evolution preserves damage instead of fully healing the new species',()=>{
   l.run(named['Evolution Expert'].script);
   assert.equal(l.get(pokemonVars(134).hp),referenceHP(134,25)-8);
   assert.equal(l.get(2),referenceHP(134,25));
+});
+test('Learning Leech Seed preserves existing PP and gives only the new move full PP',()=>{
+  const p=pokemonVars(1),l=new Logic({...partner(1,6),[p.xp]:11,7:1,104:5,105:7,106:0,107:0});
+  l.run(named['GAIN-XP'].script);
+  assert.equal(l.get(61),7);assert.equal(l.get(104),5);assert.equal(l.get(105),7);
+  assert.equal(l.get(106),moveStats('LEECH SEED').pp);assert.equal(l.get(107),0);
+  assert.ok(l.text.join(' ').includes('LEARNED LEECH'));
+  l.choices=[3];l.rolls=[1];l.run(fight);assert.equal(l.get(28),1);assert.equal(l.get(106),moveStats('LEECH SEED').pp-1);
 });
 test('The Master Ball guarantees a wild catch and cannot catch trainer Pokemon',()=>{
   const l=new Logic({...base,202:1,4:dexId(150),5:300,6:304,7:70},[4]);assert.equal(l.run(named.BAG.script).kind,'pop');assert.equal(l.get(202),0);assert.equal(l.get(pokemonVars(150).own),1);

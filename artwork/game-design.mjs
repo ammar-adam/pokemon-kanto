@@ -8,6 +8,8 @@ import { authorOpening } from './opening-story.mjs';
 import { authorRedProgression } from './red-progression.mjs';
 import { damageAuthoring, moveStats } from './battle-damage.mjs';
 import { hpAuthoring } from './hp-stats.mjs';
+import { moveLearningAuthoring } from './move-learning.mjs';
+import { playerMoveEffects } from './player-move-effects.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ids = JSON.parse(await readFile(path.join(root,'artwork/pokemon-resource-ids.json'),'utf8'));
@@ -57,7 +59,7 @@ const vars = {
   partyCount:25,rivalDone:26,starter:27,leechSeed:28,attackDrop:29,enemyAccuracy:68,paralysis:69,
   selectedSpecies:132,cash:133,checkpoint:134,encounterChoice:135,bossReturn:136,
   moveType:300,moveBonus:301,enemySleep:302,enemyPoison:303,evolutionMode:304,evolutionSource:305,evolutionDone:306,menuPage:307,attackerType:308,defenderType:309,defenderType2:310,
-  ...Object.fromEntries(species.flatMap((c,i)=>[['own '+c.name,own(i)],['hp '+c.name,hp(i)],['party '+c.name,member(i)],['level '+c.name,lv(i)],['xp '+c.name,xp(i)],...c.moves.map((m,j)=>['pp '+c.name+' '+(i>=20||c.moves.filter(n=>n===m).length>1?j+' ':'')+m,pp(i,j)])])),
+...Object.fromEntries(species.flatMap((c,i)=>[['own '+c.name,own(i)],['hp '+c.name,hp(i)],['party '+c.name,member(i)],['level '+c.name,lv(i)],['xp '+c.name,xp(i)],...Array.from({length:4},(_,j)=>['pp '+c.name+' slot '+(j+1),pp(i,j)])])),
   ...Object.fromEntries(species.map((c,i)=>['evolved '+c.name,retired(i)])),
   ...Object.fromEntries(Array.from({length:130},(_,i)=>150+i).map(i=>['quest '+i,i]))
 };
@@ -84,8 +86,11 @@ function chunked(name,events,size=8){
 function script(scene,key,events,scriptKey='script',entityType='actor') { plan.scripts.push({target:{sceneId:ids.scenes[scene],...(entityType==='scene'?{}:{[entityType+'Id']:uuid(entityType+':'+key)}),scriptKey},events}); }
 function actor(scene,key,name,sprite,x,y,events=[],properties={}) { plan.actors.push({sceneId:ids.scenes[scene],id:uuid('actor:'+key),name,spriteSheetId:ids.sprites[sprite],x,y,direction:'down',properties}); if(events.length)script(scene,key,events); }
 function trigger(scene,key,x,y,width,height,events) {plan.triggers.push({sceneId:ids.scenes[scene],id:uuid('trigger:'+key),name:key,x,y,width,height});script(scene,key,events,'script','trigger');}
-const ppMax = [35,25,20,15];
-const restorePP = i => (i<20?ppMax:species[i].moveData.map(m=>m.pp)).map((n,j)=>set(pp(i,j),n));
+const learning=moveLearningAuthoring({species,IF,EX,V,set,math,menu,say,shared,lv,pp,
+  onMove:args=>playerEffects(args),
+  onStruggle:()=>[say('USED STRUGGLE!'),set(14,1),set(300,1),set(301,50),invoke('attack'),math(3,'sub',4),IF(3,'<',0,[set(3,0)]),...storeHP(),set(18,1)]
+});
+const restorePP = i => learning.restorePP(i);
 const {maxHPEvents,clampHPEvents,resizeHPEvents}=hpAuthoring({species,IF,EX,V,set,math,chunked});
 const heal = () => chunked('heal',species.map((_,i)=>EX(`$${own(i)}$ == 1 && $${retired(i)}$ == 0`,[...maxHPEvents(i+1,lv(i),hp(i)),...restorePP(i)])),32);
 const loadPokemonHP = i => [set(0,V(lv(i))),...maxHPEvents(i+1,0,2),...clampHPEvents(hp(i),2),set(3,V(hp(i)))];
@@ -196,7 +201,7 @@ function configureBoss(){return [
   IF(19,'==',3,[set(4,8),set(7,6)]),...maxHPEvents(V(4),7,6),set(5,V(6)),set(28,0),set(29,0),set(68,0),set(69,0),set(302,0),set(303,0)];}
 script('battlefield','boss-config',configureBoss());
 script('battlefield','heal-all',heal());
-const gainXP=()=>species.map((c,i)=>IF(1,'==',i+1,[math(xp(i),'add',7,'var'),set(16,V(lv(i))),math(16,'mul',2),EX(`$${xp(i)}$ >= $16$ && $${lv(i)}$ < 100`,[math(xp(i),'sub',16,'var'),...maxHPEvents(i+1,lv(i),16),math(lv(i),'add',1),set(0,V(lv(i))),...maxHPEvents(i+1,0,2),...resizeHPEvents(hp(i),16,2),set(3,V(hp(i))),say(`${c.name}\nGREW TO LV $0$!`)])]));
+const gainXP=()=>species.map((c,i)=>IF(1,'==',i+1,[math(xp(i),'add',7,'var'),set(16,V(lv(i))),math(16,'mul',2),EX(`$${xp(i)}$ >= $16$ && $${lv(i)}$ < 100`,[math(xp(i),'sub',16,'var'),...maxHPEvents(i+1,lv(i),16),math(lv(i),'add',1),set(0,V(lv(i))),...maxHPEvents(i+1,0,2),...resizeHPEvents(hp(i),16,2),set(3,V(hp(i))),say(`${c.name}\nGREW TO LV $0$!`),...learning.learnLevel(i)])]));
 function evolve(){
   const itemModes={'water-stone':1,'thunder-stone':2,'fire-stone':3,'leaf-stone':4,'moon-stone':5};
   return [set(305,V(1)),set(306,0),...chunked('evolution',species.flatMap((c,i)=>c.evolutions.map(e=>{
@@ -219,34 +224,8 @@ const trainerVictory=Object.entries(bossTeams).filter(([mode])=>Number(mode)!==1
 ])) ;
 script('battlefield','victory',[...storeHP(),sfx(7),say('FOE POKEMON\nFAINTED!'),math(11,'add',1),invoke('gain-xp'),IF(19,'==',1,[IF(20,'<',2,[math(20,'add',1),invoke('boss-config'),invoke('hud'),say('BROCK SENT\nOUT ONIX!')],[set(12,1),say(['BROCK:\nI TOOK YOU\nFOR GRANTED.','RED RECEIVED\nTHE BOULDER BADGE!','ROUTE THREE\nIS NOW OPEN.']),invoke('heal-all'),...loadHP(),...pop()])],[...trainerVictory,IF(19,'<=',3,[IF(19,'==',2,[math(26,'add',1),say('BLUE:\nSMELL YOU LATER!')]),IF(19,'==',3,[math(26,'add',2),say('YOUNGSTER:\nI LOST!')]),IF(19,'==',0,[IF(8,'<',20,[math(8,'add',1)]),say('FOUND A POKE BALL.')]),...pop()])])]);
 
-function selectedMove(c,i,j){
-  const original=moveStats(c.moves[j]);
-  const accurate=events=>original.accuracy>=100?events:[rand(15,1,100),IF(15,'<=',original.accuracy,events,[say('THE ATTACK MISSED!')])];
-  if(i>=20){
-    const move=c.moveData[j],effects={
-      damage:[set(300,typeCode(original.type)),set(301,Math.max(1,original.power)),invoke('attack')],
-      heal:[math(3,'add',60),EX('$3$ > $2$',[set(3,V(2))]),...storeHP(),invoke('hud'),say('HP WAS RESTORED!')],
-      seed:[set(28,1),say('THE FOE WAS\nSEEDED!')],paralyze:[set(69,1),say('THE FOE WAS\nPARALYZED!')],
-      sleep:[set(302,2),say('THE FOE FELL\nASLEEP!')],poison:[set(303,1),say('THE FOE WAS\nPOISONED!')],
-      attackDown:[set(29,1),say('FOE ATTACK FELL!')],accuracyDown:[set(68,1),say('FOE ACCURACY FELL!')],
-      guard:[set(17,1),say('DEFENSE ROSE!')],splash:[say('NOTHING HAPPENED.')]
-    };
-    return [IF(pp(i,j),'==',0,[say('NO PP LEFT.')],[math(pp(i,j),'sub',1),set(18,1),set(14,j+1),say(`${c.name}\nUSED ${c.moves[j]}!`),...accurate(effects[move.effect])])];
-  }
-  const healMove=[11,12].includes(i)&&j===3;
-  const attackMove=j<2||(i===18&&j===2);
-  const attack=[set(300,typeCode(original.type)),set(301,Math.max(1,original.power)),invoke('attack')];
-  const effect=attackMove?attack:healMove?
-    [math(3,'add',20),EX('$3$ > $2$',[set(3,V(2))]),...storeHP(),invoke('hud'),say('HP WAS RESTORED!')]:
-    j===2?([4,6].includes(i)?[set(17,1),say('DEFENSE ROSE!')]:[set(29,1),say('FOE ATTACK FELL!')]):
-    i===0||i===7?[set(68,1),say('FOE ACCURACY FELL!')]:
-    i===1||i===14||i===15?[set(28,1),say('FOE WAS SEEDED!')]:
-    i===3||i===13?[set(69,1),say('FOE WAS PARALYZED!')]:
-    i===5?[...attack,set(16,V(16)),math(16,'div',2),math(3,'add',16,'var'),EX('$3$ > $2$',[set(3,V(2))]),...storeHP()]:
-    [set(17,1),say('DEFENSE ROSE!')];
-  return [IF(pp(i,j),'==',0,[say('NO PP LEFT\nFOR THAT MOVE.')],[math(pp(i,j),'sub',1),set(18,1),set(14,j+1),set(300,0),set(301,0),say(`${c.name}\nUSED ${c.moves[j]}!`),...accurate(effect)])];
-}
-function fight(indexes){return indexes.map(i=>{const c=species[i];return IF(1,'==',i+1,[EX(`$${pp(i,0)}$ + $${pp(i,1)}$ + $${pp(i,2)}$ + $${pp(i,3)}$ == 0`,[say(`${c.name}\nUSED STRUGGLE!`),set(14,1),set(300,0),set(301,0),invoke('attack'),math(3,'sub',4),IF(3,'<',0,[set(3,0)]),...storeHP(),set(18,1)],[say(`PP $${pp(i,0)}$/$${pp(i,1)}$/\n$${pp(i,2)}$/$${pp(i,3)}$`),menu(14,[...c.moves,'BACK'],true,'menu'),...c.moves.flatMap((_,j)=>IF(14,'==',j+1,selectedMove(c,i,j)))])])});}
+const playerEffects=playerMoveEffects({IF,EX,V,set,math,rand,say,invoke,storeHP,effectiveness,typeCode,pop});
+const fight=indexes=>learning.fight(indexes);
 for(let i=0;i<5;i++)script('battlefield','fight'+i,fight(Array.from({length:4},(_,j)=>i*4+j)));
 script('battlefield','fight',Array.from({length:Math.ceil(species.length/4)},(_,i)=>EX(`$1$ >= ${i*4+1} && $1$ <= ${i*4+4}`,i<5?[invoke('fight'+i)]:shared('fight_'+i,fight(Array.from({length:Math.min(4,species.length-i*4)},(_,j)=>i*4+j))))));
 

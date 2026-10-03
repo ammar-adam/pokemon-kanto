@@ -7,6 +7,15 @@ experience. Starters, wild encounters, trainer teams, healing, and gifts use
 the same formula. Level-up and evolution preserve missing HP and do not
 revive fainted Pokemon. This source milestone requires a fresh ROM build.
 
+## Move-Learning Follow-Up
+
+All 151 species now use original Red initial moves and level-up learnsets,
+with original PP. Moves unlock on level-up; retained moves keep their PP.
+The latest four learned moves are selected automatically. Manual forgetting,
+TM/HM teaching, and inherited evolution moves are not implemented. Evolution
+recomputes the target species' moves and restores PP. Complex battle effects
+are still simplified or explicitly fail; this is not the exact Red engine.
+
 ## v0.4.0-alpha.3
 
 The battle pass uses original base Attack, Defense, and combined Special stats

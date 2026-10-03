@@ -11,11 +11,15 @@ the repository's code license does not license those characters or sprites.
 Names, base statistics, original-generation learnsets, and evolution information
 are cached from [PokeAPI v2](https://pokeapi.co/docs/v2). The generated
 `kanto-data.json` preserves the input facts used by the roster authoring script.
-The game uses compact custom battle rules and curated four-move sets.
+The game uses compact custom battle rules; current moves derive from the
+pinned Red learnset snapshot rather than the older curated four-move sets.
 
 The battle pass retains numeric original base stats and move records in
 `red-base-stats.json` and `red-moves.json`, from
 [pret/pokered](https://github.com/pret/pokered/tree/d2704a63c26f9ba046ade877445216b3de0519a4).
 Both files retain provenance; the two `fetch-red-*` scripts reproduce the
 extraction. No commercial ROM is required or bundled. The base-stat data
-supersedes modern PokeAPI Attack/Defense/Special values for damage only.
+supersedes modern PokeAPI values for HP, Attack, Defense, and combined Special.
+`red-learnsets.json` records initial moves and level-up facts for all 151
+species from the same revision. `fetch-red-learnsets.mjs --check` verifies
+the snapshot against its pinned upstream records.
