@@ -335,4 +335,4 @@ test('All 165 moves author without PP/turn writes, and power-zero moves never be
 
 const failed = tests.filter(row => !row.pass);
 console.log(`${tests.length - failed.length}/${tests.length} player effect source groups passed.`);
-if (failed.leng
+if (failed.length) process.exitCode = 1;

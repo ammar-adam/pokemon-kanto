@@ -1,0 +1,273 @@
+{
+  "_resourceType": "script",
+  "id": "99e250f2-344f-5d20-bfca-01ef5cd4f67d",
+  "name": "Kanto enemy_move_acidarmor",
+  "symbol": "script_kanto_enemy_move_acidarmor",
+  "description": "Shared Kanto game logic",
+  "variables": {},
+  "actors": {},
+  "script": [
+    {
+      "id": "adb2651c-1d12-47f7-a397-c404e3c45db9",
+      "command": "EVENT_SET_VALUE",
+      "args": {
+        "variable": "16",
+        "value": {
+          "type": "number",
+          "value": 0
+        }
+      }
+    },
+    {
+      "id": "18ff8a08-46bf-4d8b-80d5-3720303be54e",
+      "command": "EVENT_SET_VALUE",
+      "args": {
+        "variable": "300",
+        "value": {
+          "type": "number",
+          "value": 8
+        }
+      }
+    },
+    {
+      "id": "3f40d1e5-ccb6-4203-9590-b3641c797581",
+      "command": "EVENT_SET_VALUE",
+      "args": {
+        "variable": "301",
+        "value": {
+          "type": "number",
+          "value": 0
+        }
+      }
+    },
+    {
+      "id": "8f83bd5e-c590-4261-8872-de0d9b775ec9",
+      "command": "EVENT_TEXT",
+      "args": {
+        "text": [
+          "THE FOE USED\nACID ARMOR!"
+        ],
+        "minHeight": 4,
+        "maxHeight": 5,
+        "textHeight": 3,
+        "closeButton": "a",
+        "speedIn": 0,
+        "speedOut": 0
+      }
+    },
+    {
+      "id": "9788983d-031c-438f-9f46-1e9751711da8",
+      "command": "EVENT_SET_VALUE",
+      "args": {
+        "variable": "135",
+        "value": {
+          "type": "number",
+          "value": 1
+        }
+      }
+    },
+    {
+      "id": "57fae5a6-8cbc-475a-a2a9-cf8f5f57b80b",
+      "command": "EVENT_IF",
+      "args": {
+        "condition": {
+          "type": "eq",
+          "valueA": {
+            "type": "variable",
+            "value": "68"
+          },
+          "valueB": {
+            "type": "number",
+            "value": 1
+          }
+        }
+      },
+      "children": {
+        "true": [
+          {
+            "id": "a97f602a-22fe-441a-b647-18ed429f7583",
+            "command": "EVENT_VARIABLE_MATH",
+            "args": {
+              "vectorX": "15",
+              "operation": "set",
+              "other": "rnd",
+              "minValue": 1,
+              "maxValue": 100
+            }
+          },
+          {
+            "id": "0378c130-0587-4efd-a7f1-574253b9bfa0",
+            "command": "EVENT_IF",
+            "args": {
+              "condition": {
+                "type": "lte",
+                "valueA": {
+                  "type": "variable",
+                  "value": "15"
+                },
+                "valueB": {
+                  "type": "number",
+                  "value": 30
+                }
+              }
+            },
+            "children": {
+              "true": [
+                {
+                  "id": "e3200b48-2e6a-4775-a4ad-9de472a8b957",
+                  "command": "EVENT_SET_VALUE",
+                  "args": {
+                    "variable": "135",
+                    "value": {
+                      "type": "number",
+                      "value": 0
+                    }
+                  }
+                }
+              ],
+              "false": []
+            }
+          }
+        ],
+        "false": []
+      }
+    },
+    {
+      "id": "fd4b0bc4-46da-4aaa-9d9e-2eb938546876",
+      "command": "EVENT_IF",
+      "args": {
+        "condition": {
+          "type": "eq",
+          "valueA": {
+            "type": "variable",
+            "value": "135"
+          },
+          "valueB": {
+            "type": "number",
+            "value": 1
+          }
+        }
+      },
+      "children": {
+        "true": [
+          {
+            "id": "533048a5-3d97-48f5-924b-f019e0909306",
+            "command": "EVENT_IF",
+            "args": {
+              "condition": {
+                "type": "expression",
+                "value": "($136$ % 16) >= 8"
+              }
+            },
+            "children": {
+              "true": [
+                {
+                  "id": "4c5544c1-4e94-4776-bee1-274d464eb269",
+                  "command": "EVENT_VARIABLE_MATH",
+                  "args": {
+                    "vectorX": "136",
+                    "operation": "sub",
+                    "other": "val",
+                    "value": 8,
+                    "clamp": false
+                  }
+                },
+                {
+                  "id": "e26440e7-1bbd-46a0-a3e4-87259fdfbcbe",
+                  "command": "EVENT_TEXT",
+                  "args": {
+                    "text": [
+                      "FOE DEFENSE\nROSE!"
+                    ],
+                    "minHeight": 4,
+                    "maxHeight": 5,
+                    "textHeight": 3,
+                    "closeButton": "a",
+                    "speedIn": 0,
+                    "speedOut": 0
+                  }
+                }
+              ],
+              "false": [
+                {
+                  "id": "e5aabee8-7e20-4059-beea-8bdad0621463",
+                  "command": "EVENT_IF",
+                  "args": {
+                    "condition": {
+                      "type": "expression",
+                      "value": "($136$ % 8) >= 4"
+                    }
+                  },
+                  "children": {
+                    "true": [
+                      {
+                        "id": "759938cb-c997-43b6-9729-7ffd9a4aacae",
+                        "command": "EVENT_TEXT",
+                        "args": {
+                          "text": [
+                            "IT CANNOT CHANGE\nANY FURTHER."
+                          ],
+                          "minHeight": 4,
+                          "maxHeight": 5,
+                          "textHeight": 3,
+                          "closeButton": "a",
+                          "speedIn": 0,
+                          "speedOut": 0
+                        }
+                      }
+                    ],
+                    "false": [
+                      {
+                        "id": "aa9376e0-c415-44d8-bdf4-ca99a1ccc9c9",
+                        "command": "EVENT_VARIABLE_MATH",
+                        "args": {
+                          "vectorX": "136",
+                          "operation": "add",
+                          "other": "val",
+                          "value": 4,
+                          "clamp": false
+                        }
+                      },
+                      {
+                        "id": "f087509e-ad00-4219-8021-e92a4b940b84",
+                        "command": "EVENT_TEXT",
+                        "args": {
+                          "text": [
+                            "FOE DEFENSE\nROSE!"
+                          ],
+                          "minHeight": 4,
+                          "maxHeight": 5,
+                          "textHeight": 3,
+                          "closeButton": "a",
+                          "speedIn": 0,
+                          "speedOut": 0
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "false": [
+          {
+            "id": "5308b88e-c894-4f4a-8bc0-efb4a285f60d",
+            "command": "EVENT_TEXT",
+            "args": {
+              "text": [
+                "THE FOE MISSED!"
+              ],
+              "minHeight": 4,
+              "maxHeight": 5,
+              "textHeight": 3,
+              "closeButton": "a",
+              "speedIn": 0,
+              "speedOut": 0
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -8,8 +8,9 @@ import { authorOpening } from './opening-story.mjs';
 import { authorRedProgression } from './red-progression.mjs';
 import { damageAuthoring, moveStats } from './battle-damage.mjs';
 import { hpAuthoring } from './hp-stats.mjs';
-import { moveLearningAuthoring } from './move-learning.mjs';
+import { moveLearningAuthoring, movesAtLevel } from './move-learning.mjs';
 import { playerMoveEffects } from './player-move-effects.mjs';
+import { enemyMoveAuthoring, enemyBattleStateAuthoring } from './enemy-moves.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ids = JSON.parse(await readFile(path.join(root,'artwork/pokemon-resource-ids.json'),'utf8'));
@@ -57,7 +58,7 @@ const vars = {
   capsules:8,potions:9,caught:10,wins:11,badge:12,choice:13,move:14,roll:15,
   damage:16,guard:17,spent:18,boss:19,bossStage:20,cooldown:21,initialized:22,pauseChoice:23,battleChoice:24,
   partyCount:25,rivalDone:26,starter:27,leechSeed:28,attackDrop:29,enemyAccuracy:68,paralysis:69,
-  selectedSpecies:132,cash:133,checkpoint:134,encounterChoice:135,bossReturn:136,
+  selectedSpecies:132,cash:133,checkpoint:134,encounterChoice:135,battleStages:136,
   moveType:300,moveBonus:301,enemySleep:302,enemyPoison:303,evolutionMode:304,evolutionSource:305,evolutionDone:306,menuPage:307,attackerType:308,defenderType:309,defenderType2:310,
 ...Object.fromEntries(species.flatMap((c,i)=>[['own '+c.name,own(i)],['hp '+c.name,hp(i)],['party '+c.name,member(i)],['level '+c.name,lv(i)],['xp '+c.name,xp(i)],...Array.from({length:4},(_,j)=>['pp '+c.name+' slot '+(j+1),pp(i,j)])])),
   ...Object.fromEntries(species.map((c,i)=>['evolved '+c.name,retired(i)])),
@@ -86,6 +87,7 @@ function chunked(name,events,size=8){
 function script(scene,key,events,scriptKey='script',entityType='actor') { plan.scripts.push({target:{sceneId:ids.scenes[scene],...(entityType==='scene'?{}:{[entityType+'Id']:uuid(entityType+':'+key)}),scriptKey},events}); }
 function actor(scene,key,name,sprite,x,y,events=[],properties={}) { plan.actors.push({sceneId:ids.scenes[scene],id:uuid('actor:'+key),name,spriteSheetId:ids.sprites[sprite],x,y,direction:'down',properties}); if(events.length)script(scene,key,events); }
 function trigger(scene,key,x,y,width,height,events) {plan.triggers.push({sceneId:ids.scenes[scene],id:uuid('trigger:'+key),name:key,x,y,width,height});script(scene,key,events,'script','trigger');}
+const stages=enemyBattleStateAuthoring({EX,set,math,say});
 const learning=moveLearningAuthoring({species,IF,EX,V,set,math,menu,say,shared,lv,pp,
   onMove:args=>playerEffects(args),
   onStruggle:()=>[say('USED STRUGGLE!'),set(14,1),set(300,1),set(301,50),invoke('attack'),math(3,'sub',4),IF(3,'<',0,[set(3,0)]),...storeHP(),set(18,1)]
@@ -96,7 +98,7 @@ const heal = () => chunked('heal',species.map((_,i)=>EX(`$${own(i)}$ == 1 && $${
 const loadPokemonHP = i => [set(0,V(lv(i))),...maxHPEvents(i+1,0,2),...clampHPEvents(hp(i),2),set(3,V(hp(i)))];
 const loadHP = () => chunked('load_hp',species.map((_,i)=>IF(1,'==',i+1,loadPokemonHP(i))));
 const storeHP = () => chunked('store_hp',species.map((_,i)=>IF(1,'==',i+1,[set(hp(i),V(3))])));
-const living = () => [set(1,0),...chunked('living',species.map((_,i)=>EX(`$1$ == 0 && $${member(i)}$ == 1 && $${hp(i)}$ > 0`,[set(1,i+1)]))),...loadHP()];
+const living = () => [...stages.clearPlayer(),set(1,0),...chunked('living',species.map((_,i)=>EX(`$1$ == 0 && $${member(i)}$ == 1 && $${hp(i)}$ > 0`,[set(1,i+1)]))),...loadHP()];
 const firstParty = () => [set(1,0),...chunked('first_party',species.map((_,i)=>EX(`$1$ == 0 && $${member(i)}$ == 1`,[set(1,i+1)]))),...loadHP()];
 const pop = () => [set(21,1),E('EVENT_SCENE_POP_STATE',{fadeSpeed:2})];
 const startBattle = () => [E('EVENT_SCENE_PUSH_STATE'),switchScene('battlefield',9,13)];
@@ -168,15 +170,14 @@ function effectiveness(attacker,defender,message=false){return [
   ...chunked('chart',Object.entries(typeChart).map(([type,groups])=>IF(308,'==',typeCode(type),groups.flatMap((group,g)=>group.flatMap(target=>[309,310].map(variable=>IF(variable,'==',typeCode(target),g===2?[set(16,0)]:g===0?[math(16,'mul',2)]:[IF(16,'>',0,[math(16,'div',2),IF(16,'==',0,[set(16,1)])])]))))))),
   ...(message?[IF(16,'==',0,[say('IT HAS NO EFFECT!')])]:[])
 ];}
-script('battlefield','attack',[IF(300,'==',0,[set(300,1)]),IF(301,'<=',0,[set(301,40)]),...damage.base(1,4,0,7),...effectiveness(1,4,true),rand(15,1,16),IF(15,'==',1,[math(16,'mul',2),say('A CRITICAL HIT!')]),rand(15,217,255),...damage.variance(),math(5,'sub',16,'var'),IF(5,'<',0,[set(5,0)]),sfx(3),fx('enemy'),invoke('hud')]);
+script('battlefield','attack',[IF(300,'==',0,[set(300,1)]),IF(301,'<=',0,[set(301,40)]),...damage.base(1,4,0,7),...stages.playerDamage(),...effectiveness(1,4,true),rand(15,1,16),IF(15,'==',1,[math(16,'mul',2),say('A CRITICAL HIT!')]),rand(15,217,255),...damage.variance(),math(5,'sub',16,'var'),IF(5,'<',0,[set(5,0)]),sfx(3),fx('enemy'),invoke('hud')]);
 
-script('battlefield','counter',[IF(302,'>',0,[math(302,'sub',1),say('THE FOE IS\nFAST ASLEEP.')],[
-  set(300,1),set(301,40),rand(15,1,3),IF(15,'==',1,chunked('counter_type',species.map((p,i)=>IF(4,'==',i+1,[set(300,typeCode(p.types[0]))])))),...damage.base(4,1,7,0),...effectiveness(4,1),rand(15,217,255),...damage.variance(),IF(29,'==',1,[math(16,'div',2)]),IF(17,'==',1,[math(16,'div',2),set(17,0)]),
-  rand(15,1,100),EX('($68$ == 1 && $15$ <= 30) || ($69$ == 1 && $15$ <= 25)',[set(16,0),say('THE FOE COULD\nNOT LAND A HIT.')],[say('THE FOE ATTACKS!')]),
-  math(3,'sub',16,'var'),IF(3,'<',0,[set(3,0)]),...storeHP(),sfx(2),fx('partner'),invoke('hud')
-])]);
+const enemyMoves=enemyMoveAuthoring({species,getMoves:(p,level)=>movesAtLevel(p.dex,level),IF,EX,V,set,math,rand,say,shared,chunked,typeCode,damage,effectiveness,storeHP,invoke,sfx,fx,
+  statusEffects:{...stages.statusEffects,SWITCH_AND_TELEPORT_EFFECT:()=>[IF(19,'==',0,[say('THE FOE FLED!'),...pop()],[say('BUT IT FAILED!')])]},damageModifiers:stages.enemyDamage
+});
+script('battlefield','counter',enemyMoves.counter());
 
-script('battlefield','party',[...speciesMenu(),...species.map((c,i)=>IF(132,'==',i+1,[EX(`$${member(i)}$ == 1 && $${hp(i)}$ > 0`,[IF(1,'==',i+1,[say('ALREADY IN BATTLE.')],[set(1,i+1),...loadPokemonHP(i),set(18,1),set(17,0),invoke('hud'),say(`GO, ${c.name}!`)])],[say('NOT IN PARTY\nOR NEEDS REST.')])]))]);
+script('battlefield','party',[...speciesMenu(),...species.map((c,i)=>IF(132,'==',i+1,[EX(`$${member(i)}$ == 1 && $${hp(i)}$ > 0`,[IF(1,'==',i+1,[say('ALREADY IN BATTLE.')],[...stages.clearPlayer(),set(1,i+1),...loadPokemonHP(i),set(18,1),set(17,0),invoke('hud'),say(`GO, ${c.name}!`)])],[say('NOT IN PARTY\nOR NEEDS REST.')])]))]);
 
 function registerPokemon(caught=false){return chunked(caught?'register_caught':'register',species.map((c,i)=>IF(4,'==',i+1,[
   EX(`$${own(i)}$ == 0 || $${retired(i)}$ == 1`,[
@@ -198,7 +199,7 @@ function configureBoss(){return [
   ...Object.entries(bossTeams).map(([mode,team])=>IF(19,'==',Number(mode),team.team.map(([pokemon,level],i)=>IF(20,'==',i+1,[set(4,pokemon),set(7,level)])))),
   IF(19,'==',2,[IF(27,'==',1,[set(4,3)]),IF(27,'==',2,[set(4,1)]),IF(27,'==',3,[set(4,2)]),set(7,5)]),
   ...Object.entries(rivalVariants).map(([mode,variants])=>IF(19,'==',Number(mode),Object.entries(variants).map(([starter,pairs])=>IF(27,'==',Number(starter),pairs.map(([dex,level],i)=>IF(20,'==',bossTeams[mode].team.length-pairs.length+i+1,[set(4,dexId(dex)),set(7,level)])))))),
-  IF(19,'==',3,[set(4,8),set(7,6)]),...maxHPEvents(V(4),7,6),set(5,V(6)),set(28,0),set(29,0),set(68,0),set(69,0),set(302,0),set(303,0)];}
+  IF(19,'==',3,[set(4,8),set(7,6)]),...maxHPEvents(V(4),7,6),set(5,V(6)),...stages.clearEnemy(),set(28,0),set(29,0),set(68,0),set(69,0),set(302,0),set(303,0)];}
 script('battlefield','boss-config',configureBoss());
 script('battlefield','heal-all',heal());
 const gainXP=()=>species.map((c,i)=>IF(1,'==',i+1,[math(xp(i),'add',7,'var'),set(16,V(lv(i))),math(16,'mul',2),EX(`$${xp(i)}$ >= $16$ && $${lv(i)}$ < 100`,[math(xp(i),'sub',16,'var'),...maxHPEvents(i+1,lv(i),16),math(lv(i),'add',1),set(0,V(lv(i))),...maxHPEvents(i+1,0,2),...resizeHPEvents(hp(i),16,2),set(3,V(hp(i))),say(`${c.name}\nGREW TO LV $0$!`),...learning.learnLevel(i)])]));
@@ -224,17 +225,17 @@ const trainerVictory=Object.entries(bossTeams).filter(([mode])=>Number(mode)!==1
 ])) ;
 script('battlefield','victory',[...storeHP(),sfx(7),say('FOE POKEMON\nFAINTED!'),math(11,'add',1),invoke('gain-xp'),IF(19,'==',1,[IF(20,'<',2,[math(20,'add',1),invoke('boss-config'),invoke('hud'),say('BROCK SENT\nOUT ONIX!')],[set(12,1),say(['BROCK:\nI TOOK YOU\nFOR GRANTED.','RED RECEIVED\nTHE BOULDER BADGE!','ROUTE THREE\nIS NOW OPEN.']),invoke('heal-all'),...loadHP(),...pop()])],[...trainerVictory,IF(19,'<=',3,[IF(19,'==',2,[math(26,'add',1),say('BLUE:\nSMELL YOU LATER!')]),IF(19,'==',3,[math(26,'add',2),say('YOUNGSTER:\nI LOST!')]),IF(19,'==',0,[IF(8,'<',20,[math(8,'add',1)]),say('FOUND A POKE BALL.')]),...pop()])])]);
 
-const playerEffects=playerMoveEffects({IF,EX,V,set,math,rand,say,invoke,storeHP,effectiveness,typeCode,pop});
+const playerEffects=playerMoveEffects({IF,EX,V,set,math,rand,say,invoke,storeHP,effectiveness,typeCode,pop,statusEffects:stages.playerStatusEffects});
 const fight=indexes=>learning.fight(indexes);
 for(let i=0;i<5;i++)script('battlefield','fight'+i,fight(Array.from({length:4},(_,j)=>i*4+j)));
 script('battlefield','fight',Array.from({length:Math.ceil(species.length/4)},(_,i)=>EX(`$1$ >= ${i*4+1} && $1$ <= ${i*4+4}`,i<5?[invoke('fight'+i)]:shared('fight_'+i,fight(Array.from({length:Math.min(4,species.length-i*4)},(_,j)=>i*4+j))))));
 
-const battle=[hide('player'),E('EVENT_REMOVE_INPUT_SCRIPT',{input:['start','select']}),...hiddenLogic.map(h=>hide(uuid('actor:'+h))),set(17,0),set(28,0),set(29,0),set(68,0),set(69,0),set(300,0),set(301,0),set(302,0),set(303,0),...loadHP(),IF(3,'<=',0,living()),IF(19,'!=',0,[invoke('boss-config')]),invoke('hud'),IF(19,'!=',0,[IF(19,'==',2,[say('BLUE WANTS\nTO BATTLE!')],[IF(19,'==',3,[say('YOUNGSTER WANTS\nTO BATTLE!')],[...Object.entries(bossTeams).map(([mode,team])=>IF(19,'==',Number(mode),[say(`${team.name}\nWANTS TO BATTLE!`)]))])])],[...species.map((c,i)=>IF(4,'==',i+1,[say(`WILD ${c.name}\nAPPEARED!`)]))]),label('turn'),IF(3,'<=',0,living()),IF(1,'==',0,[say('RED HAS NO\nPOKEMON LEFT!'),set(195,0),invoke('heal-all'),set(1,0),...living(),E('EVENT_SCENE_RESET_STATE'),
+const battle=[...stages.reset(),hide('player'),E('EVENT_REMOVE_INPUT_SCRIPT',{input:['start','select']}),...hiddenLogic.map(h=>hide(uuid('actor:'+h))),set(17,0),set(28,0),set(29,0),set(68,0),set(69,0),set(300,0),set(301,0),set(302,0),set(303,0),...loadHP(),IF(3,'<=',0,living()),IF(19,'!=',0,[invoke('boss-config')]),invoke('hud'),IF(19,'!=',0,[IF(19,'==',2,[say('BLUE WANTS\nTO BATTLE!')],[IF(19,'==',3,[say('YOUNGSTER WANTS\nTO BATTLE!')],[...Object.entries(bossTeams).map(([mode,team])=>IF(19,'==',Number(mode),[say(`${team.name}\nWANTS TO BATTLE!`)]))])])],[...species.map((c,i)=>IF(4,'==',i+1,[say(`WILD ${c.name}\nAPPEARED!`)]))]),label('turn'),IF(3,'<=',0,living()),IF(1,'==',0,[say('RED HAS NO\nPOKEMON LEFT!'),set(195,0),invoke('heal-all'),set(1,0),...living(),E('EVENT_SCENE_RESET_STATE'),
   IF(134,'==',7,[switchScene('fuchsia',18,21)]),IF(134,'==',8,[switchScene('saffron',18,21)]),IF(134,'==',9,[switchScene('cinnabar',18,21)]),IF(134,'==',10,[switchScene('indigo',18,21)]),
   IF(134,'==',1,[switchScene('viridian',18,21)]),IF(134,'==',2,[switchScene('pewter',18,21)]),IF(134,'==',3,[switchScene('cerulean',18,21)]),IF(134,'==',4,[switchScene('vermilion',18,21)]),IF(134,'==',5,[switchScene('lavender',18,21)]),IF(134,'==',6,[switchScene('celadon',18,21)]),switchScene('fernvale',18,21)]),set(18,0),invoke('hud'),menu(24,['FIGHT','BAG','POKEMON','RUN'],false),
   IF(24,'==',1,[invoke('fight')]),
   IF(24,'==',2,[invoke('bag')]),IF(24,'==',3,[invoke('party')]),IF(24,'==',4,[IF(19,'!=',0,[say('NO RUNNING FROM\nA TRAINER BATTLE!')],[say('GOT AWAY SAFELY.'),...pop()])]),
-  IF(18,'==',1,[IF(303,'==',1,[math(5,'sub',6),say('POISON HURTS\nTHE FOE!')]),EX('$28$ == 1 && $3$ > 0',[math(5,'sub',2),math(3,'add',2),EX('$3$ > $2$',[set(3,V(2))]),...storeHP(),say('LEECH SEED\nDRAINED THE FOE!')]),IF(5,'<=',0,[set(5,0),invoke('victory'),go('turn')]),IF(3,'>',0,[invoke('counter')]),IF(3,'<=',0,[say('YOUR POKEMON\nFAINTED!'),...living(),IF(1,'>',0,[set(17,0),invoke('hud'),say('THE NEXT POKEMON\nTAKES THE FIELD.')])])]),go('turn')];
+IF(18,'==',1,[IF(303,'==',1,[math(5,'sub',6),say('POISON HURTS\nTHE FOE!')]),EX('$28$ == 1 && $3$ > 0',[math(5,'sub',2),math(3,'add',2),EX('$3$ > $2$',[set(3,V(2))]),...storeHP(),say('LEECH SEED\nDRAINED THE FOE!')]),IF(5,'<=',0,[set(5,0),IF(3,'<=',0,living()),IF(1,'>',0,[invoke('victory')]),go('turn')]),IF(3,'>',0,[invoke('counter')]),IF(5,'<=',0,[set(5,0),IF(3,'<=',0,living()),IF(1,'>',0,[invoke('victory')]),go('turn')]),IF(3,'<=',0,[say('YOUR POKEMON\nFAINTED!'),...living(),IF(1,'>',0,[set(17,0),invoke('hud'),say('THE NEXT POKEMON\nTAKES THE FIELD.')])])]),go('turn')];
 script('battlefield','battlefield',battle,'script','scene');
 // The Kanto route is a series of authored scenes; every gate has a reachable return.
 const enter=(from,key,x,y,w,h,to,tx,ty,guard=null)=>trigger(from,key,x,y,w,h,guard? [IF(guard.variable,'==',guard.value,[switchScene(to,tx,ty,guard.direction||'up')],[say(guard.message)])]:[switchScene(to,tx,ty)]);

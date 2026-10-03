@@ -39,7 +39,7 @@ No hardware write is performed by the included assistant.
 Open `Pokemon-Kanto.gbc` in a Game Boy Color-compatible emulator. Choose its
 GBC mode and allow battery-backed saves. D-pad moves/selects, A confirms, B
 cancels, Start opens the field menu. Preserve your emulator's save file when updating.
-Start a new game for v0.4.0-alpha.3. Its progression and memory layout are incompatible
+Start a new game for v0.4.0-alpha.4. Its progression and memory layout are incompatible
 with older saves; back up your old save instead of overwriting it.
 
 To edit, clone the repository and open `project.gbsproj` in GB Studio 4.3.2.

@@ -1,13 +1,19 @@
 # Pokemon Kanto: Opening Remake Preview
 
-## HP Follow-Up
+## v0.4.0-alpha.4
+
+Three separate feature commits add species-based HP, original level-up moves,
+and named opponent moves. The release remains a balance-test alpha, not the
+original Red/Blue engine or a verified full playthrough. **Start a new save.**
+
+### HP
 
 HP now uses each species' original base HP, fixed DV 9, and zero stat
 experience. Starters, wild encounters, trainer teams, healing, and gifts use
 the same formula. Level-up and evolution preserve missing HP and do not
-revive fainted Pokemon. This source milestone requires a fresh ROM build.
+revive fainted Pokemon. Captures retain their remaining HP; gifts arrive healed.
 
-## Move-Learning Follow-Up
+### Move Learning
 
 All 151 species now use original Red initial moves and level-up learnsets,
 with original PP. Moves unlock on level-up; retained moves keep their PP.
@@ -16,19 +22,28 @@ TM/HM teaching, and inherited evolution moves are not implemented. Evolution
 recomputes the target species' moves and restores PP. Complex battle effects
 are still simplified or explicitly fail; this is not the exact Red engine.
 
-## v0.4.0-alpha.3
+### Opponent Moves
+
+Wild Pokemon and trainers choose uniformly from their species' current
+level-derived moves, announce the move, and use its power, type, and accuracy.
+Growl, Tail Whip, Leer, and Harden use capped physical damage modifiers.
+Recovery, drain, recoil, and fixed-damage moves have dedicated handling.
+Opponent PP, sophisticated trainer AI, full status/stage rules, speed order,
+multi-hit/multi-turn effects, and several special moves remain unfinished.
+Unsupported non-damaging effects fail rather than becoming generic attacks.
+
+### Existing Damage Model
 
 The battle pass uses original base Attack, Defense, and combined Special stats
 for all 151 Pokemon, plus original damaging-move power/type and move accuracy.
 Damage includes same-type bonuses, type matchups, and a 217-255 random factor.
 Misses spend PP and a turn. Native arithmetic is checked against an independent
-reference across 2,718 player/enemy damage cases and a boundary-value matrix.
+reference and a boundary-value matrix.
 Base data is pinned to a [pokered revision](https://github.com/pret/pokered/tree/d2704a63c26f9ba046ade877445216b3de0519a4).
 
 This is not yet the original battle engine: combat stats use fixed DV 9 and
-zero stat experience; HP growth, curated moves/PP, status effects, critical
-hits, fixed-damage/multi-hit moves, capture, and enemy move selection remain
-simplified. Enemy attacks still use a generic 40-power move. Damage is capped
+zero stat experience; status effects, critical hits, multi-hit moves, and capture
+remain simplified. Damage is capped
 at 999 before type modifiers. Runtime speed, audio, saves, and gameplay have
 not been verified. Start a new save and treat this as a balance-test alpha.
 
@@ -59,7 +74,7 @@ exact original maps; the house is still one room. Encounter frequency, battle
 stats, move learning, dialogue, and later campaign areas remain simplified.
 There are 68 native scenes. The prior v0.3.0 campaign release is preserved.
 **Start a new save for this preview.** Controller play, saves, and hardware
-have not been verified. The 73 logic tests are source checks, not playtests.
+have not been verified. Automated logic checks are source checks, not playtests.
 
 Encounter references: [Route One](https://github.com/pret/pokered/blob/master/data/wild/maps/Route1.asm)
 and [Viridian Forest](https://github.com/pret/pokered/blob/master/data/wild/maps/ViridianForest.asm).
@@ -86,7 +101,7 @@ The opening remake builds on the earlier compact campaign.
   and Pikachu. Other routes and caves have distinct encounter pools.
 - Bug Catchers, Scouts, Hikers, Lass, Sailor, Rocket Grunts, Blue, Giovanni,
   and gym leaders have different teams and one-time victory flags.
-- Four moves per species, PP, type interactions, experience, party switching,
+- Up to four level-derived moves per species, PP, type interactions, experience, party switching,
   six-member party, PC storage, healing, Pokedex pages, and battery saves.
 - Color palettes vary by area, with custom map and trainer pixel art.
 
@@ -96,7 +111,7 @@ less. There is one saved representative per species, not duplicate catches.
 This is a **complete-campaign preview**, not the original Red/Blue ROM or its
 exact maps, dialogue, or battle engine. Levels cap at 100. There is no link-cable
 multiplayer, breeding, held-item system, or original move-learning interface.
-Not every original building or NPC is recreated. Moves are curated per species.
+Not every original building or NPC is recreated. Move replacement is automatic.
 
 ## Download And Install
 
@@ -108,7 +123,7 @@ checks the ROM hash and opens that guide; it does **not** flash a cartridge.
 Playing the ROM does not require Node, Python, GB Studio, or a connected device.
 
 D-pad moves/selects; A interacts/confirms; B cancels supported menus; Start
-opens the field menu. **Start a new game for v0.4.0-alpha.3.** Its progression and VM
+opens the field menu. **Start a new game for v0.4.0-alpha.4.** Its progression and VM
 memory layout are incompatible with older saves. Back up old `.sav` files.
 
 ## Edit And Test

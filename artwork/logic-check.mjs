@@ -6,6 +6,7 @@ import { decodeResourceBytes } from '../scripts/resource-bytes.mjs';
 import { bossTeams,rivalVariants,world,roster,dexId } from './campaign-world.mjs';
 import { openingEncounters } from './opening-story.mjs';
 import {redStats,moveStats} from './battle-damage.mjs';
+import {movesAtLevel} from './move-learning.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const plan=JSON.parse(await readFile(path.join(root,'artwork/game-plan.json'),'utf8'));
@@ -73,7 +74,7 @@ function referenceDamage(attacker,defender,level,enemyLevel,power,type,multiplie
   if(critical)n*=2;return n>0?Math.max(1,Math.floor(n*roll/255)):0;
 }
 test('Move power, elemental advantage, dual resistance and HP clamping',()=>{let l=new Logic({...base,300:1,301:40});l.run(named.ATTACK.script);assert.equal(l.get(16),referenceDamage(1,7,3,3,40,'NORMAL'));assert.equal(l.get(5),28-l.get(16));l=new Logic({...base,300:4,301:35});l.run(named.ATTACK.script);assert.equal(l.get(16),referenceDamage(1,7,3,3,35,'GRASS',[2]));l=new Logic({...base,4:2,5:1,300:4,301:35});l.run(named.ATTACK.script);assert.equal(l.get(16),referenceDamage(1,1,3,3,35,'GRASS',[.5,.5]));assert.equal(l.get(5),0);});
-test('Water resistance and Guard reduce one hit and store party HP',()=>{const l=new Logic({...base,17:1},[],[1]);l.run(named.COUNTER.script);const hit=Math.floor(referenceDamage(7,1,3,3,40,'WATER',[.5])/2);assert.equal(l.get(3),36-hit);assert.equal(l.get(41),36-hit);assert.equal(l.get(17),0);});
+test('Water resistance and Guard reduce one hit and store party HP',()=>{const l=new Logic({...base,17:1,7:8},[],[3,255]);l.run(named.COUNTER.script);const hit=Math.max(1,Math.floor(referenceDamage(7,1,8,3,20,'WATER',[.5])/2));assert.equal(l.get(3),36-hit);assert.equal(l.get(41),36-hit);assert.equal(l.get(17),0);});
 test('Original stat and move records retain generation-one differences',()=>{assert.equal(Object.keys(redStats).length,151);assert.equal(redStats[4].special,50);assert.equal(redStats[25].defense,30);assert.equal(moveStats('GUST').type,'NORMAL');assert.equal(moveStats('TACKLE').power,35);assert.equal(moveStats('FLAMETHROWER').power,95);});
 test('Cartridge multiply-divide stays in range and matches exact integer arithmetic',()=>{
   const script=byId[plan.customScripts.find(s=>s.name==='Kanto damage_mul_div').id].script;
@@ -88,10 +89,12 @@ test('All 151 player attackers match independent physical and Special calculatio
     assert.equal(l.get(16),referenceDamage(p.dex,41,level,level,95,type,[],false,roll),`${p.name} ${type} L${level}`);
   }
 });
-test('Enemy attacks use their own stats and respect both random damage endpoints',()=>{
-  for(const p of roster)for(const level of [1,50,100])for(const roll of [217,255]){
-    const l=new Logic({...base,1:dexId(41),4:p.index,0:level,7:level,3:30000},[],[3,roll,100]);l.run(named.COUNTER.script);
-    assert.equal(l.get(3),30000-referenceDamage(p.dex,41,level,level,40,'NORMAL',[],false,roll),p.name);
+test('Every species selects and announces a real level-appropriate opponent move',()=>{
+  for(const p of roster)for(const level of [1,50,100]){
+    const l=new Logic({...base,1:dexId(41),4:p.index,0:level,7:level,3:30000,5:30000,6:30000});l.run(named.COUNTER.script);
+    const move=movesAtLevel(p.dex,level).at(-1),text=l.text.join(' ').replace(/\s+/g,' ');
+    assert.ok(text.includes('THE FOE USED '+move+'!'),p.name+' '+level+' '+text);
+    assert.ok(!text.includes('THE FOE ATTACKS!'));
   }
 });
 test('Heavy resistance still takes one damage while immunities remain zero',()=>{const l=new Logic({...base,0:1,7:100,4:dexId(31),300:8,301:15},[],[16,217]);l.run(named.ATTACK.script);assert.equal(l.get(16),1);});
@@ -102,9 +105,9 @@ test('No capsules or full HP consumes neither item nor turn',()=>{let l=new Logi
 test('Potion heals, clamps to maximum and persists individual HP',()=>{const l=new Logic({...base,3:20,41:20},[2]);l.run(named.BAG.script);assert.equal(l.get(3),36);assert.equal(l.get(41),36);assert.equal(l.get(9),2);assert.equal(l.get(18),1);});
 test('Champion opponents cannot be caught or escaped',()=>{const l=new Logic({...base,19:1},[1]);l.run(named.BAG.script);assert.equal(l.get(8),6);assert.equal(l.get(18),0);});
 test('Bag Back does not fall through to Party or Run',()=>{const l=new Logic(base,[2,3,4]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(3),referenceHP(1,3));assert.equal(l.choices.length,0);assert.ok(!l.trace.includes('EVENT_ACTOR_EFFECTS'));});
-test('Party switching spends one turn without accidentally running',()=>{const l=new Logic({...base,33:1,53:1,43:36},[3,4,4],[2]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(1),4);assert.equal(l.get(43),referenceHP(25,3)-referenceDamage(7,25,3,3,40,'NORMAL'));});
-test('Fainting automatically brings in the next healthy owned partner',()=>{const l=new Logic({...base,3:1,41:1,32:1,52:1,42:36,5:100,6:100},[1,1,4],[2]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(41),0);assert.equal(l.get(1),3);assert.equal(l.get(3),referenceHP(7,3));});
-test('Full-party defeat heals and returns to an accessible town tile',()=>{const l=new Logic({...base,3:1,41:1,5:100,6:100},[1,1],[2]);const end=l.run(scenes.battlefield.script);assert.equal(end.kind,'switch');assert.equal(end.args.sceneId,scenes.fernvale.id);assert.equal(l.get(1),2);assert.equal(l.get(41),referenceHP(1,3));});
+test('Party switching spends one turn without accidentally running',()=>{const l=new Logic({...base,33:1,53:1,43:36},[3,4,4],[1,95,255]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(1),4);assert.equal(l.get(43),referenceHP(25,3)-referenceDamage(7,25,3,3,35,'NORMAL'));});
+test('Fainting automatically brings in the next healthy owned partner',()=>{const l=new Logic({...base,3:1,41:1,32:1,52:1,42:36,5:100,6:100},[1,1,4],[2,16,255,1,95,255]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(41),0);assert.equal(l.get(1),3);assert.equal(l.get(3),referenceHP(7,3));});
+test('Full-party defeat heals and returns to an accessible town tile',()=>{const l=new Logic({...base,3:1,41:1,5:100,6:100},[1,1],[2,16,255,1,95,255]);const end=l.run(scenes.battlefield.script);assert.equal(end.kind,'switch');assert.equal(end.args.sceneId,scenes.fernvale.id);assert.equal(l.get(1),2);assert.equal(l.get(41),referenceHP(1,3));});
 test('Nested overworld party menu cannot accidentally save',()=>{const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');const l=new Logic({...base,32:1,52:1,42:36},[1,3]);l.run(pause.children.true);assert.equal(l.get(1),3);assert.equal(l.saved,null);});
 test('Explicit Save produces a journal snapshot',()=>{const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');const l=new Logic(base,[3]);l.run(pause.children.true);assert.equal(l.saved[31],1);assert.equal(l.saved[0],3);});
 test('Brock advances from Geodude to level fourteen Onix and awards Boulder Badge',()=>{const l=new Logic({...base,19:1,20:1,5:0,71:5});l.run(named.VICTORY.script);assert.equal(l.get(20),2);assert.equal(l.get(4),7);assert.equal(l.get(7),14);assert.equal(l.get(0),4);assert.equal(l.get(2),referenceHP(1,4));assert.equal(l.run(named.VICTORY.script).kind,'pop');assert.equal(l.get(12),1);assert.equal(l.get(9),3);});
@@ -127,7 +130,7 @@ test('A move spends only its own individual PP',()=>{const l=new Logic(base,[1],
 test('An empty move and Back spend no PP or turn',()=>{let l=new Logic({...base,105:0},[2]);l.run(fight);assert.equal(l.get(104),35);assert.equal(l.get(105),0);assert.equal(l.get(18),0);l=new Logic(base,[3]);l.run(fight);assert.equal(l.get(18),0);assert.equal(l.get(104),35);});
 test('All PP empty enables Struggle with persistent recoil',()=>{const l=new Logic({...base,104:0,105:0,106:0,107:0},[],[16]);l.run(fight);assert.equal(l.get(5),28-referenceDamage(1,7,3,3,50,'NORMAL'));assert.equal(l.get(3),32);assert.equal(l.get(41),32);assert.equal(l.get(18),1);});
 test('Critical hit doubles damage before the random multiplier',()=>{const l=new Logic({...base,300:1,301:40},[],[1]);l.run(named.ATTACK.script);const hit=referenceDamage(1,7,3,3,40,'NORMAL',[],true);assert.equal(l.get(16),hit);assert.equal(l.get(5),28-hit);});
-test('Grass Leech Seed drains the foe and heals within maximum HP',()=>{const l=new Logic({...base,0:7,61:7,41:20},[1,3,4],[1]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(28),1);assert.equal(l.get(5),26);assert.equal(l.get(41),22-referenceDamage(7,1,3,7,40,'NORMAL'));assert.equal(l.get(106),34);});
+test('Grass Leech Seed drains the foe and heals within maximum HP',()=>{const l=new Logic({...base,0:7,61:7,41:20},[1,3,4],[1,1,95,255]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(28),1);assert.equal(l.get(5),26);assert.equal(l.get(41),22-referenceDamage(7,1,3,7,35,'NORMAL'));assert.equal(l.get(106),34);});
 test('Pikachu Thunder Wave and Pidgey Sand Attack set battle effects',()=>{let l=new Logic({...base,1:4,63:9},[3]);l.run(fight);assert.equal(l.get(69),1);l=new Logic({...base,1:8,67:5},[2]);l.run(fight);assert.equal(l.get(68),1);});
 test('PC preserves a valid lead even when the remaining party is fainted',()=>{const l=new Logic({...base,25:2,33:1,53:1,43:0},[2]);l.run(named['Bills PC'].script);assert.equal(l.get(1),4);assert.equal(l.get(25),1);assert.equal(l.get(3),0);});
 test('Individual experience levels only the battling Pokemon',()=>{const l=new Logic({...base,71:5,19:0});l.run(named.VICTORY.script);assert.equal(l.get(61),4);assert.equal(l.get(60),3);assert.equal(l.get(71),2);assert.equal(l.get(2),referenceHP(1,4));});
@@ -254,6 +257,23 @@ test('Learning Leech Seed preserves existing PP and gives only the new move full
   assert.equal(l.get(106),moveStats('LEECH SEED').pp);assert.equal(l.get(107),0);
   assert.ok(l.text.join(' ').includes('LEARNED LEECH'));
   l.choices=[3];l.rolls=[1];l.run(fight);assert.equal(l.get(28),1);assert.equal(l.get(106),moveStats('LEECH SEED').pp-1);
+});
+test('Named Growl, Tail Whip, and Harden change only the intended battle stages',()=>{
+  for(const [dex,level,slot,bit]of [[1,3,2,1],[7,3,2,2],[11,7,1,4]]){
+    const l=new Logic({...base,4:dexId(dex),7:level},[],slot===1?[]:[slot]);l.run(named.COUNTER.script);
+    assert.equal(l.get(136),bit);assert.equal(l.get(3),base[3]);
+  }
+});
+test('Player switch and defeated-foe replacement clear only their own stages',()=>{
+  const l=new Logic({...base,136:31,33:1,53:1,43:12},[4]);l.run(named.PARTY.script);assert.equal(l.get(136),12);
+  l.v[136]=31;l.v[29]=1;l.v[19]=1;l.v[20]=2;l.run(named['BOSS-CONFIG'].script);assert.equal(l.get(136),19);assert.equal(l.get(29),0);
+});
+test('Enemy Explosion ends a wild battle and simultaneous party defeat returns to town',()=>{
+  const sturdy=partner(151,100),p=pokemonVars(151);
+  let l=new Logic({...sturdy,4:dexId(101),7:50,5:referenceHP(101,50),6:referenceHP(101,50),9:1,3:300,[p.hp]:300},[2,2], [4,255]);
+  assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(11),1);
+  l=new Logic({...base,4:dexId(101),7:50,5:referenceHP(101,50),6:referenceHP(101,50),9:1,3:1,41:1},[2,2],[4,255]);
+  assert.equal(l.run(scenes.battlefield.script).kind,'switch');assert.equal(l.get(11),0);assert.equal(l.get(41),referenceHP(1,3));
 });
 test('The Master Ball guarantees a wild catch and cannot catch trainer Pokemon',()=>{
   const l=new Logic({...base,202:1,4:dexId(150),5:300,6:304,7:70},[4]);assert.equal(l.run(named.BAG.script).kind,'pop');assert.equal(l.get(202),0);assert.equal(l.get(pokemonVars(150).own),1);
