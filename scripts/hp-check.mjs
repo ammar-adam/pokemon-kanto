@@ -176,17 +176,19 @@ test('Capture retains foe HP at enemy level and never overwrites an existing cat
   for(const p of roster){
     const s=slots(p.index-1),maximum=reference(p.dex,50);
     const vars={4:p.index,5:1,6:maximum,7:50,8:1,19:0,25:0};
-    const l=new Logic(vars,[1],[100]);assert.equal(l.run(named('BAG')).kind,'pop');
+    const l=new Logic(vars,[1],[0]);assert.equal(l.run(named('BAG')).kind,'pop');
     assert.equal(l.get(s.hp),1);assert.equal(l.get(s.level),50);assert.equal(l.get(s.own),1);assert.equal(l.get(25),1);
-    const duplicate=new Logic({...vars,[s.own]:1,[s.hp]:3,[s.level]:5},[1],[100]);duplicate.run(named('BAG'));
+    const duplicate=new Logic({...vars,[s.own]:1,[s.hp]:3,[s.level]:5},[1],[0]);duplicate.run(named('BAG'));
     assert.equal(duplicate.get(s.hp),3);assert.equal(duplicate.get(s.level),5);
   }
 });
-test('Master Ball capture clamps invalid foe HP and preserves injuries when sent to the PC',()=>{
+test('Master Ball rejects invalid targets and preserves injuries when sent to the PC',()=>{
   const dex=113,id=dexId(dex),s=slots(id-1),maximum=reference(dex,100);
-  for(const [current,expected]of [[maximum+20,maximum],[-1,0],[maximum-30,maximum-30]]){
+  for(const [current,expected]of [[maximum+20,null],[-1,null],[0,null],[maximum-30,maximum-30]]){
     const l=new Logic({4:id,5:current,6:maximum,7:100,19:0,25:6,202:1},[4]);
-    assert.equal(l.run(named('BAG')).kind,'pop');assert.equal(l.get(s.hp),expected);
+    const end=l.run(named('BAG'));
+    if(expected===null){assert.equal(end,null);assert.equal(l.get(202),1);assert.equal(l.get(s.own),0);assert.equal(l.get(18),0);}
+    else {assert.equal(end.kind,'pop');assert.equal(l.get(s.hp),expected);assert.equal(l.get(202),0);}
     assert.equal(l.get(s.member),0);assert.equal(l.get(25),6);
   }
 });

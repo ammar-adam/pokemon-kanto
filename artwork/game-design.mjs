@@ -15,6 +15,7 @@ import { musicId,sceneScore } from './music-score.mjs';
 import { adventureMenu } from './adventure-menu.mjs';
 import { indexedDispatch } from './indexed-dispatch.mjs';
 import { turnOrderAuthoring } from './turn-order.mjs';
+import { captureAuthoring } from './capture-rules.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ids = JSON.parse(await readFile(path.join(root,'artwork/pokemon-resource-ids.json'),'utf8'));
@@ -209,13 +210,14 @@ function registerPokemon(caught=false){return chunked(caught?'register_caught':'
     IF(25,'<',6,[set(member(i),1),math(25,'add',1)],[say('PARTY FULL.\nSENT TO BILL\'S PC.')])
   ],[say('ALREADY IN YOUR\nCOLLECTION.')]),say(`${c.name}\nWAS REGISTERED!`)
 ])));}
-function capture(master=false){return [IF(19,'!=',0,[say('DO NOT STEAL\nA TRAINER\'S\nPOKEMON!')],[
+const captureRules=captureAuthoring({species,IF,EX,V,set,math,rand,shared});
+function capture(master=false){return [IF(19,'!=',0,[say('DO NOT STEAL\nA TRAINER\'S\nPOKEMON!')],[EX('$5$ <= 0 || $6$ <= 0 || $5$ > $6$ || $6$ > 999',[say('THERE IS NO\nVALID TARGET.')],[
   IF(master?202:8,'==',0,[say(master?'NO MASTER BALL.':'NO POKE BALLS\nLEFT.')],[
     math(master?202:8,'sub',1),set(18,1),
-    ...(master?[set(15,1)]:[rand(15,1,100),set(16,V(6)),math(16,'div',3),EX('$5$ <= $16$ || $15$ <= 35',[set(15,1)],[set(16,V(6)),math(16,'div',2),EX('$5$ <= $16$ && $15$ <= 75',[set(15,1)],[set(15,0)])])]),
+    ...captureRules.attempt(master),set(15,V(16)),
     sfx(4),fx('enemy'),IF(15,'==',1,[...registerPokemon(true),sfx(7),...pop()],[say('IT BROKE FREE!')])
   ])
-])];}
+])])];}
 script('battlefield','bag',[menu(13,['POKE BALL','POTION','BACK','MASTER BALL']),IF(13,'==',1,capture()),IF(13,'==',4,capture(true)),IF(13,'==',2,[IF(9,'==',0,[say('NO POTIONS LEFT.')],[EX('$3$ >= $2$',[say('HP IS ALREADY FULL.')],[math(9,'sub',1),math(3,'add',20),EX('$3$ > $2$',[set(3,V(2))]),...storeHP(),set(18,1),invoke('hud'),sfx(6),say('POTION RESTORED HP.')])])])]);
 
 function configureBoss(){return [
