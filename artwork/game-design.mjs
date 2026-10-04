@@ -14,6 +14,7 @@ import { enemyMoveAuthoring, enemyBattleStateAuthoring } from './enemy-moves.mjs
 import { musicId,sceneScore } from './music-score.mjs';
 import { adventureMenu } from './adventure-menu.mjs';
 import { indexedDispatch } from './indexed-dispatch.mjs';
+import { turnOrderAuthoring } from './turn-order.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ids = JSON.parse(await readFile(path.join(root,'artwork/pokemon-resource-ids.json'),'utf8'));
@@ -96,6 +97,7 @@ function actor(scene,key,name,sprite,x,y,events=[],properties={}) { plan.actors.
 function trigger(scene,key,x,y,width,height,events) {plan.triggers.push({sceneId:ids.scenes[scene],id:uuid('trigger:'+key),name:key,x,y,width,height});script(scene,key,events,'script','trigger');}
 const stages=enemyBattleStateAuthoring({EX,set,math,say});
 const learning=moveLearningAuthoring({species,IF,EX,V,set,math,menu,say,shared,lv,pp,
+  onTurn:args=>orderedTurn(args),
   onMove:args=>playerEffects(args),
   onStruggle:()=>[say('USED STRUGGLE!'),set(14,1),set(300,1),set(301,50),invoke('attack'),math(3,'sub',4),IF(3,'<',0,[set(3,0)]),...storeHP(),set(18,1)]
 });
@@ -196,6 +198,7 @@ const enemyMoves=enemyMoveAuthoring({species,getMoves:(p,level)=>movesAtLevel(p.
   statusEffects:{...stages.statusEffects,SWITCH_AND_TELEPORT_EFFECT:()=>[IF(19,'==',0,[say('THE FOE FLED!'),...pop()],[say('BUT IT FAILED!')])]},damageModifiers:stages.enemyDamage
 });
 script('battlefield','counter',enemyMoves.counter());
+const orderedTurn=turnOrderAuthoring({species,IF,EX,V,set,math,rand,shared,enemyMoves});
 
 script('battlefield','party',[...speciesMenu(),...species.map((c,i)=>IF(132,'==',i+1,[EX(`$${member(i)}$ == 1 && $${hp(i)}$ > 0`,[IF(1,'==',i+1,[say('ALREADY IN BATTLE.')],[...stages.clearPlayer(),set(1,i+1),...loadPokemonHP(i),set(18,1),set(17,0),invoke('hud'),say(`GO, ${c.name}!`)])],[say('NOT IN PARTY\nOR NEEDS REST.')])]))]);
 
@@ -255,9 +258,9 @@ const battle=[...stages.reset(),hide('player'),E('EVENT_REMOVE_INPUT_SCRIPT',{in
   IF(134,'==',1,[switchScene('viridian',18,21)]),IF(134,'==',2,[switchScene('pewter',18,21)]),IF(134,'==',3,[switchScene('cerulean',18,21)]),IF(134,'==',4,[switchScene('vermilion',18,21)]),IF(134,'==',5,[switchScene('lavender',18,21)]),IF(134,'==',6,[switchScene('celadon',18,21)]),switchScene('fernvale',18,21)]),set(18,0),invoke('hud'),menu(24,['FIGHT','BAG','POKEMON','RUN'],false),
   IF(24,'==',1,[invoke('fight')]),
   IF(24,'==',2,[invoke('bag')]),IF(24,'==',3,[invoke('party')]),IF(24,'==',4,[IF(19,'!=',0,[say('NO RUNNING FROM\nA TRAINER BATTLE!')],[say('GOT AWAY SAFELY.'),...pop()])]),
-IF(18,'==',1,[
+IF(18,'>',0,[
   IF(5,'<=',0,[set(5,0),IF(3,'<=',0,living()),IF(1,'>',0,[invoke('victory')]),go('turn')]),
-  IF(3,'>',0,[invoke('counter')]),
+  EX('$3$ > 0 && $18$ == 1',[invoke('counter')]),
   ...shared('end_turn_residual',[
     EX('$303$ == 1 && $5$ > 0 && $3$ > 0',[
       set(16,V(6)),math(16,'div',16),IF(16,'<',1,[set(16,1)]),math(5,'sub',16,'var'),IF(5,'<',0,[set(5,0)]),

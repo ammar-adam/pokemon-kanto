@@ -40,7 +40,7 @@ class Logic {
     case 'EVENT_SET_VALUE':this.v[a.variable]=this.val(a.value);break;
     case 'EVENT_RESET_VARIABLES':this.v={};break;
     case 'EVENT_VARIABLE_MATH':{const current=this.get(a.vectorX);let other=a.other==='var'?this.get(a.vectorY):a.value;
-      if(a.other==='rnd'){other=this.rolls.length?this.rolls.shift():a.maxValue;assert.ok(other>=a.minValue && other<=a.maxValue,'RNG result in bounds');}
+      if(a.other==='rnd'){other=this.rolls.length?this.rolls.shift():a.maxValue;assert.ok(other>=a.minValue && other<=a.maxValue,`RNG ${other} must be ${a.minValue}..${a.maxValue}`);}
       this.v[a.vectorX]=({set:()=>other,add:()=>current+other,sub:()=>current-other,mul:()=>current*other,div:()=>Math.trunc(current/other),mod:()=>current%other})[a.operation]();assert.ok(Number.isInteger(this.v[a.vectorX])&&this.v[a.vectorX]>=-32768&&this.v[a.vectorX]<=32767,'GBVM arithmetic stays signed 16-bit');break;}
     case 'EVENT_IF_VALUE':{const x=this.get(a.variable),y=a.comparator;const yes=({'==':x===y,'!=':x!==y,'<':x<y,'>':x>y,'<=':x<=y,'>=':x>=y})[a.operator];this.body(e.children[yes?'true':'false']||[]);break;}
     case 'EVENT_IF_EXPRESSION':this.body(e.children[this.expression(a.expression)?'true':'false']||[]);break;
@@ -155,8 +155,8 @@ test('Potion heals, clamps to maximum and persists individual HP',()=>{const l=n
 test('Champion opponents cannot be caught or escaped',()=>{const l=new Logic({...base,19:1},[1]);l.run(named.BAG.script);assert.equal(l.get(8),6);assert.equal(l.get(18),0);});
 test('Bag Back does not fall through to Party or Run',()=>{const l=new Logic(base,[2,3,4]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(3),referenceHP(1,3));assert.equal(l.choices.length,0);assert.ok(!l.trace.includes('EVENT_ACTOR_EFFECTS'));});
 test('Party switching spends one turn without accidentally running',()=>{const l=new Logic({...base,33:1,53:1,43:36},[3,4,4],[1,95,255]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(1),4);assert.equal(l.get(43),referenceHP(25,3)-referenceDamage(7,25,3,3,35,'NORMAL'));});
-test('Fainting automatically brings in the next healthy owned partner',()=>{const l=new Logic({...base,3:1,41:1,32:1,52:1,42:36,5:100,6:100},[1,1,4],[2,16,255,1,95,255]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(41),0);assert.equal(l.get(1),3);assert.equal(l.get(3),referenceHP(7,3));});
-test('Full-party defeat heals and returns to an accessible town tile',()=>{const l=new Logic({...base,3:1,41:1,5:100,6:100},[1,1],[2,16,255,1,95,255]);const end=l.run(scenes.battlefield.script);assert.equal(end.kind,'switch');assert.equal(end.args.sceneId,scenes.fernvale.id);assert.equal(l.get(1),2);assert.equal(l.get(41),referenceHP(1,3));});
+test('Fainting automatically brings in the next healthy owned partner',()=>{const l=new Logic({...base,3:1,41:1,32:1,52:1,42:36,5:100,6:100},[1,1,4],[1,1,95,255]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(41),0);assert.equal(l.get(1),3);assert.equal(l.get(3),referenceHP(7,3));assert.equal(l.get(104),35);});
+test('Full-party defeat heals and returns to an accessible town tile',()=>{const l=new Logic({...base,3:1,41:1,5:100,6:100},[1,1],[1,1,95,255]);const end=l.run(scenes.battlefield.script);assert.equal(end.kind,'switch');assert.equal(end.args.sceneId,scenes.fernvale.id);assert.equal(l.get(1),2);assert.equal(l.get(41),referenceHP(1,3));});
 test('Nested overworld party menu cannot accidentally save',()=>{const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');const l=new Logic({...base,32:1,52:1,42:36},[1,3]);l.run(pause.children.true);assert.equal(l.get(1),3);assert.deepEqual(l.slots,{});});
 test('Explicit Save produces an independent snapshot in each of three files',()=>{const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');const l=new Logic({...base,22:11});for(let slot=0;slot<3;slot++){l.v[133]=3000+slot;l.choices=[3,slot+1,1];l.run(pause.children.true);assert.equal(l.slots[slot][31],1);assert.equal(l.slots[slot][22],11+slot);}assert.deepEqual(Object.values(l.slots).map(s=>s[133]),[3000,3001,3002]);});
 test('Cancel at either save menu preserves every file and the active file',()=>{const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');for(const choices of [[3,0],[3,4],[3,2,0],[3,2,1]]){const l=new Logic({...base,22:11},choices);l.slots[1]={133:999};l.run(pause.children.true);assert.deepEqual(l.slots,{1:{133:999}});assert.equal(l.get(22),11);assert.ok(!l.trace.includes('EVENT_SAVE_DATA'));}});
@@ -179,10 +179,21 @@ test('Home and Route One each give only one potion',()=>{const l=new Logic();for
 test('Forest gate remains closed until the parcel is returned',()=>{const t=plan.triggers.find(t=>t.name==='north forest');let l=new Logic(base);assert.equal(l.run(byId[t.id].script),null);l=new Logic({...base,248:1});assert.equal(l.run(byId[t.id].script).args.sceneId,scenes.forest.id);});
 test('Lab exit requires a starter and the opening rival victory',()=>{const t=plan.triggers.find(t=>t.name==='leave lab');let l=new Logic();assert.equal(l.run(byId[t.id].script),null);l=new Logic(base);assert.equal(l.run(byId[t.id].script).args.sceneId,scenes.battlefield.id);assert.equal(l.get(19),2);l=new Logic({...base,26:1});assert.equal(l.run(byId[t.id].script).args.sceneId,scenes.fernvale.id);});
 const fight=named.FIGHT.script;
-test('A 95-percent move hits at 95 and misses at 96 while spending PP and a turn',()=>{for(const roll of [95,96]){const l=new Logic(base,[1],[roll,16,255]);l.run(fight);assert.equal(l.get(104),34);assert.equal(l.get(18),1);assert.equal(l.get(5)<28,roll===95);assert.equal(l.get(3),36);}});
-test('A move spends only its own individual PP',()=>{const l=new Logic(base,[1],[16]);l.run(fight);assert.equal(l.get(104),34);assert.equal(l.get(105),35);assert.equal(l.get(18),1);});
+test('A complete fight turn executes each side once in its resolved order',()=>{
+  for(const enemyFirst of [0,1]){
+    const rolls=enemyFirst?[1,1,95,255,95,16,255]:[1,0,95,16,255,95,255];
+    const l=new Logic(base,[1,1,4],rolls);assert.equal(l.run(scenes.battlefield.script).kind,'pop');
+    const actions=l.text.filter(t=>t.includes('USED'));
+    assert.equal(actions.length,2);assert.equal(actions[enemyFirst?0:1].includes('THE FOE USED'),true);
+    assert.equal(l.get(104),34);assert.equal(l.get(105),35);
+    assert.equal(l.get(41),referenceHP(1,3)-referenceDamage(7,1,3,3,35,'NORMAL'));
+    assert.equal(l.rolls.length,0);
+  }
+});
+test('A 95-percent move hits at 95 and misses at 96 while spending PP and a turn',()=>{for(const roll of [95,96]){const l=new Logic({...base,302:1},[1],[1,0,roll,16,255]);l.run(fight);assert.equal(l.get(104),34);assert.equal(l.get(18),2);assert.equal(l.get(5)<28,roll===95);assert.equal(l.get(3),36);}});
+test('A move spends only its own individual PP',()=>{const l=new Logic({...base,302:1},[1],[1,0,95,16,255]);l.run(fight);assert.equal(l.get(104),34);assert.equal(l.get(105),35);assert.equal(l.get(18),2);});
 test('An empty move and B cancel spend no PP or turn',()=>{let l=new Logic({...base,105:0},[2]);l.run(fight);assert.equal(l.get(104),35);assert.equal(l.get(105),0);assert.equal(l.get(18),0);l=new Logic(base,[0]);l.run(fight);assert.equal(l.get(18),0);assert.equal(l.get(104),35);});
-test('All PP empty enables Struggle with persistent recoil',()=>{const l=new Logic({...base,104:0,105:0,106:0,107:0},[],[16]);l.run(fight);assert.equal(l.get(5),28-referenceDamage(1,7,3,3,50,'NORMAL'));assert.equal(l.get(3),32);assert.equal(l.get(41),32);assert.equal(l.get(18),1);});
+test('All PP empty enables Struggle with persistent recoil',()=>{const l=new Logic({...base,302:1,104:0,105:0,106:0,107:0},[],[1,0,16,255]);l.run(fight);assert.equal(l.get(5),28-referenceDamage(1,7,3,3,50,'NORMAL'));assert.equal(l.get(3),32);assert.equal(l.get(41),32);assert.equal(l.get(18),2);});
 test('Critical hit doubles damage before the random multiplier',()=>{const l=new Logic({...base,300:1,301:40},[],[1]);l.run(named.ATTACK.script);const hit=referenceDamage(1,7,3,3,40,'NORMAL',[],true);assert.equal(l.get(16),hit);assert.equal(l.get(5),28-hit);});
 test('Grass Leech Seed drains after the foe acts and heals within maximum HP',()=>{const l=new Logic({...base,0:7,61:7,41:20},[1,3,4],[1,1,95,255]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(28),1);assert.equal(l.get(5),27);assert.equal(l.get(41),21-referenceDamage(7,1,3,7,35,'NORMAL'));assert.equal(l.get(106),34);assert.ok(l.text.findIndex(t=>t.includes('THE FOE USED'))<l.text.findIndex(t=>t.includes('DRAINED THE FOE')));});
 test('Pikachu Thunder Wave and Pidgey Sand Attack set battle effects',()=>{let l=new Logic({...base,1:4,63:9},[3]);l.run(fight);assert.equal(l.get(69),1);l=new Logic({...base,1:8,67:5},[2]);l.run(fight);assert.equal(l.get(68),1);});
@@ -310,7 +321,7 @@ test('Learning Leech Seed preserves existing PP and gives only the new move full
   assert.equal(l.get(61),7);assert.equal(l.get(104),5);assert.equal(l.get(105),7);
   assert.equal(l.get(106),moveStats('LEECH SEED').pp);assert.equal(l.get(107),0);
   assert.ok(l.text.join(' ').includes('LEARNED LEECH'));
-  l.choices=[3];l.rolls=[1];l.run(fight);assert.equal(l.get(28),1);assert.equal(l.get(106),moveStats('LEECH SEED').pp-1);
+  Object.assign(l.v,{4:dexId(7),5:28,6:28,7:3});l.choices=[3];l.rolls=[1,1,95,255];l.run(fight);assert.equal(l.get(28),1);assert.equal(l.get(106),moveStats('LEECH SEED').pp-1);
 });
 test('Named Growl, Tail Whip, and Harden change only the intended battle stages',()=>{
   for(const [dex,level,slot,bit]of [[1,3,2,1],[7,3,2,2],[11,7,1,4]]){

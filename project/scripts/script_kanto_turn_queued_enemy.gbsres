@@ -1,0 +1,190 @@
+{
+  "_resourceType": "script",
+  "id": "1588f118-5e08-5767-bc45-2d2395c57497",
+  "name": "Kanto turn_queued_enemy",
+  "symbol": "script_kanto_turn_queued_enemy",
+  "description": "Shared Kanto game logic",
+  "variables": {},
+  "actors": {
+    "556aa1b9-f14f-5fc7-b09a-634572df67e9": {
+      "id": "556aa1b9-f14f-5fc7-b09a-634572df67e9",
+      "name": "Partner"
+    }
+  },
+  "script": [
+    {
+      "id": "be3485bb-a3a0-4d5f-acb4-68fcf00d54ca",
+      "command": "EVENT_IF",
+      "args": {
+        "condition": {
+          "type": "expression",
+          "value": "$3$ > 0 && $5$ > 0"
+        }
+      },
+      "children": {
+        "true": [
+          {
+            "id": "a64b2792-ee63-4225-b66f-263b313d0de2",
+            "command": "EVENT_SET_VALUE",
+            "args": {
+              "variable": "14",
+              "value": {
+                "type": "variable",
+                "value": "306"
+              }
+            }
+          },
+          {
+            "id": "5fb3f28a-0ce0-438f-9b39-01fb81434ca5",
+            "command": "EVENT_SET_VALUE",
+            "args": {
+              "variable": "16",
+              "value": {
+                "type": "number",
+                "value": 0
+              }
+            }
+          },
+          {
+            "id": "2f4c4b33-bf80-4823-92ab-acb845079c01",
+            "command": "EVENT_IF",
+            "args": {
+              "condition": {
+                "type": "gt",
+                "valueA": {
+                  "type": "variable",
+                  "value": "302"
+                },
+                "valueB": {
+                  "type": "number",
+                  "value": 0
+                }
+              }
+            },
+            "children": {
+              "true": [
+                {
+                  "id": "5bf5b44d-5d1a-47a4-9d24-cad94523c0a2",
+                  "command": "EVENT_VARIABLE_MATH",
+                  "args": {
+                    "vectorX": "302",
+                    "operation": "sub",
+                    "other": "val",
+                    "value": 1,
+                    "clamp": false
+                  }
+                },
+                {
+                  "id": "3f6fbe99-a874-4937-a9b3-d13c55d4cc63",
+                  "command": "EVENT_TEXT",
+                  "args": {
+                    "text": [
+                      "THE FOE IS\nFAST ASLEEP."
+                    ],
+                    "minHeight": 4,
+                    "maxHeight": 5,
+                    "textHeight": 3,
+                    "closeButton": "a",
+                    "speedIn": 0,
+                    "speedOut": 0
+                  }
+                }
+              ],
+              "false": [
+                {
+                  "id": "a0daedf3-e236-4d35-8a3b-8c03ade49fac",
+                  "command": "EVENT_IF",
+                  "args": {
+                    "condition": {
+                      "type": "eq",
+                      "valueA": {
+                        "type": "variable",
+                        "value": "69"
+                      },
+                      "valueB": {
+                        "type": "number",
+                        "value": 1
+                      }
+                    }
+                  },
+                  "children": {
+                    "true": [
+                      {
+                        "id": "ddf9df12-edc1-42e7-a989-a4ce0ad871fd",
+                        "command": "EVENT_VARIABLE_MATH",
+                        "args": {
+                          "vectorX": "15",
+                          "operation": "set",
+                          "other": "rnd",
+                          "minValue": 1,
+                          "maxValue": 100
+                        }
+                      },
+                      {
+                        "id": "7d4df913-6e72-4e28-85b0-456d1619a7c5",
+                        "command": "EVENT_IF",
+                        "args": {
+                          "condition": {
+                            "type": "gt",
+                            "valueA": {
+                              "type": "variable",
+                              "value": "15"
+                            },
+                            "valueB": {
+                              "type": "number",
+                              "value": 25
+                            }
+                          }
+                        },
+                        "children": {
+                          "true": [
+                            {
+                              "id": "b98e81de-adc7-489a-b62d-23f7b347c855",
+                              "command": "EVENT_CALL_CUSTOM_EVENT",
+                              "args": {
+                                "customEventId": "d24af469-6590-5e89-b134-01c776cdb477",
+                                "$actor[556aa1b9-f14f-5fc7-b09a-634572df67e9]$": "556aa1b9-f14f-5fc7-b09a-634572df67e9"
+                              }
+                            }
+                          ],
+                          "false": [
+                            {
+                              "id": "dbee387e-d359-4e97-aa4d-a6c70f63af25",
+                              "command": "EVENT_TEXT",
+                              "args": {
+                                "text": [
+                                  "THE FOE IS\nFULLY PARALYZED!"
+                                ],
+                                "minHeight": 4,
+                                "maxHeight": 5,
+                                "textHeight": 3,
+                                "closeButton": "a",
+                                "speedIn": 0,
+                                "speedOut": 0
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    "false": [
+                      {
+                        "id": "cdc57fb9-3c5f-4486-b8c3-f608980e3dd7",
+                        "command": "EVENT_CALL_CUSTOM_EVENT",
+                        "args": {
+                          "customEventId": "d24af469-6590-5e89-b134-01c776cdb477",
+                          "$actor[556aa1b9-f14f-5fc7-b09a-634572df67e9]$": "556aa1b9-f14f-5fc7-b09a-634572df67e9"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "false": []
+      }
+    }
+  ]
+}

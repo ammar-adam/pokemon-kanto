@@ -67,6 +67,9 @@ export function ppAtLevel(dex, level, stats = originalMoveStats) {
  * - onMove({move,stats}) returns execution events using the actual Red move identity.
  *   It is authored once per distinct move. Slot/turn PP bookkeeping happens here.
  * - onStruggle() returns the project's Struggle events, including spent-turn handling.
+ * - Optional onTurn({move,events}) schedules a valid selection. Its events include
+ *   PP spending, so it may skip them when a faster opponent knocks the player out.
+ *   Cancel and empty-PP choices never invoke it. By default events run immediately.
  * - Enemy authoring can use moveTiers(dex) with level variable 7, independently of PP.
  *
  * No variable allocation or multiplication is performed. The only common variables
@@ -78,7 +81,7 @@ export function ppAtLevel(dex, level, stats = originalMoveStats) {
  */
 export function moveLearningAuthoring({
   species, IF, EX, V, set, math, menu: makeMenu, say, shared, lv, pp,
-  moveStats = originalMoveStats, onMove, onStruggle,
+  moveStats = originalMoveStats, onMove, onStruggle, onTurn=({events})=>events,
 }) {
   const emitted = new Set();
   const key = move => move.toLowerCase().replace(/[^a-z]/g, '');
@@ -135,10 +138,10 @@ export function moveLearningAuthoring({
 
   function selected(index, slot, move) {
     return [
-      IF(pp(index, slot), '<=', 0, [say('NO PP LEFT\nFOR THAT MOVE.')], [
+      IF(pp(index, slot), '<=', 0, [say('NO PP LEFT\nFOR THAT MOVE.')], onTurn({move,events:[
         math(pp(index, slot), 'sub', 1), set(18, 1), set(14, slot + 1),
         say(`USED ${move}!`), ...execute(move),
-      ]),
+      ]})),
     ];
   }
 
@@ -149,15 +152,15 @@ export function moveLearningAuthoring({
   }
 
   const menu = index => atLevel(index, tier => menuTier(index, tier));
-  const selectionTier = (index, tier) => tier.moves.map((move, slot) =>
-    IF(14, '==', slot + 1, selected(index, slot, move)));
+  const selectionTier = (index, tier) => tier.moves.reduceRight((otherwise,move,slot)=>
+    [IF(14,'==',slot+1,selected(index,slot,move),otherwise)],[]);
   const selection = index => atLevel(index, tier => selectionTier(index, tier));
 
   function fight(indexes) {
     if (typeof onStruggle !== 'function') throw new TypeError('onStruggle must author the exhausted-PP turn');
     return indexes.map(index => IF(1, '==', index + 1, atLevel(index, tier => [
       EX(tier.moves.map((_, slot) => `$${pp(index, slot)}$`).join(' + ') + ' <= 0',
-        once('learned_struggle', onStruggle),
+        once('learned_struggle',()=>onTurn({move:'STRUGGLE',events:onStruggle()})),
         [...menuTier(index, tier), ...selectionTier(index, tier)]),
     ])));
   }

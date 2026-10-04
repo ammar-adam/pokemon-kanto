@@ -212,11 +212,11 @@ export function enemyMoveAuthoring({species, getMoves, moveTiers, IF, EX, V, set
       ])};
     }),{IF,shared});
   }
-  function counter() {
-    const turn = [...select(), ...resolve()];
+  function counter({selected=false}={}) {
+    const turn = [...(selected?[]:select()), ...resolve()];
     return [set(16, 0), IF(302, '>', 0, [math(302, 'sub', 1), say('THE FOE IS\nFAST ASLEEP.')], [
-      IF(69, '==', 1, [rand(15, 1, 100), IF(15, '>', 25, shared('enemy_turn', turn),
-        [say('THE FOE IS\nFULLY PARALYZED!')])], shared('enemy_turn', turn))
+      IF(69, '==', 1, [rand(15, 1, 100), IF(15, '>', 25, shared(selected?'enemy_queued_turn':'enemy_turn', turn),
+        [say('THE FOE IS\nFULLY PARALYZED!')])], shared(selected?'enemy_queued_turn':'enemy_turn', turn))
     ])];
   }
   return {select, resolve, counter, tiers, moves: [...catalog.values()]};
