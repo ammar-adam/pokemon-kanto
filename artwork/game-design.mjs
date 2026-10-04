@@ -17,6 +17,7 @@ import { indexedDispatch } from './indexed-dispatch.mjs';
 import { turnOrderAuthoring } from './turn-order.mjs';
 import { captureAuthoring } from './capture-rules.mjs';
 import { storyJournal } from './story-journal.mjs';
+import { sceneCompilerReferences } from './compiler-references.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ids = JSON.parse(await readFile(path.join(root,'artwork/pokemon-resource-ids.json'),'utf8'));
@@ -460,6 +461,9 @@ for(const s of plan.scripts)walkEvents(s.events,e=>{
   }
 });
 const entities=[...plan.actors,...plan.triggers];
+for(const {root,references} of sceneCompilerReferences(plan)){
+  root.events.unshift(E('EVENT_GBVM_SCRIPT',{script:'',references}));
+}
 if(new Set(entities.map(e=>e.id)).size!==entities.length)throw new Error('Duplicate native actor or trigger ID');
 plan.statistics={eventCount:plan.scripts.reduce((n,s)=>n+count(s.events),0),scriptCount:plan.scripts.length,actorCount:plan.actors.length,triggerCount:plan.triggers.length,variables:plan.variables.length};
 plan.statistics.customScripts=plan.customScripts.length;

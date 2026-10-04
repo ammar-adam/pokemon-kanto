@@ -56,6 +56,7 @@ class Logic {
     case 'EVENT_PEEK_DATA':assert.ok(this.slots[a.saveSlot]);this.v[a.variableDest]=this.slots[a.saveSlot][a.variableSource]||0;break;
     case 'EVENT_LOAD_DATA':assert.ok(this.slots[a.saveSlot]);this.v={...this.slots[a.saveSlot]};this.body(this.loadBranches[a.saveSlot]||[]);throw new Halt('load',a);
     case 'EVENT_TEXT_SET_ANIMATION_SPEED':this.textSpeed=a.speed;break;
+    case 'EVENT_GBVM_SCRIPT':assert.equal(a.script,'','reference-only compile event');break;
     case 'EVENT_SET_INPUT_SCRIPT':case 'EVENT_MUSIC_PLAY':break;
     default:assert.ok(['EVENT_TEXT','EVENT_TEXT_DRAW','EVENT_DEFINE_LABEL','EVENT_ACTOR_SET_SPRITE','EVENT_ACTOR_SET_STATE','EVENT_ACTOR_EFFECTS','EVENT_ACTOR_HIDE','EVENT_ACTOR_SHOW','EVENT_ACTOR_SET_POSITION','EVENT_SOUND_PLAY_EFFECT','EVENT_SCRIPT_LOCK','EVENT_SCRIPT_UNLOCK','EVENT_REMOVE_INPUT_SCRIPT','EVENT_SCENE_PUSH_STATE','EVENT_SCENE_RESET_STATE'].includes(e.command),'known native event '+e.command);
   }}

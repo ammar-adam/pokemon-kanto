@@ -21,6 +21,19 @@ if (build.result.rom.sha256 !== sha256 || inspect.result.sha256 !== sha256 || !i
 const symbolsText=await readFile(build.result.debugArtifacts.noiPath,'utf8');
 const globalsText=await readFile(build.result.debugArtifacts.globalsPath,'utf8');
 const symbols=Object.fromEntries([...symbolsText.matchAll(/^DEF (\S+) 0x([0-9A-F]+)$/gmi)].map(m=>[m[1],parseInt(m[2],16)]));
+const plan=JSON.parse(await readFile(path.join(root,'artwork/game-plan.json'),'utf8'));
+const catalog=new Set(plan.scripts.flatMap(s=>s.events.filter(e=>e.command==='EVENT_GBVM_SCRIPT')
+  .flatMap(e=>e.args.references.filter(r=>r.type==='script').map(r=>r.id))));
+if(!catalog.size)throw new Error('Missing compiler dependency catalogs');
+const compiledSharedScripts=[];
+for(const script of plan.customScripts.filter(s=>catalog.has(s.id))){
+  const address=symbols['_'+script.symbol];
+  if(!Number.isInteger(address)||address<0x10000)throw new Error('Missing compiled shared routine '+script.name);
+  const offset=(address>>>16)*0x4000+(address&0x3fff);
+  // A depth-truncated custom routine contains only VM_RET_FAR / VM_RET_FAR_N.
+  if(script.script.length&&rom[offset]===0x0b)throw new Error('Empty compiled shared routine '+script.name);
+  compiledSharedScripts.push(script.symbol);
+}
 const saveLayout=inspectSaveLayout(rom,symbols);
 const compiledMusic=Object.keys(scores).map(key=>{
   const symbol='_music_kanto_'+key+'_Data',address=symbols[symbol];
@@ -59,6 +72,7 @@ const receipt = {
   cartridgeType: inspect.result.cartridgeTypeName,
   headerValid: inspect.result.valid,
   compiledCalls,
+  compiledSharedScriptCount:compiledSharedScripts.length,
   compiledMusic,
   saveLayout,
   projectRevision: build.result.debugArtifacts?.sourceProvenance?.projectRevision || null,
