@@ -2,6 +2,12 @@
 
 ## Unreleased Battle And Blue Accuracy Pass
 
+New release packages are blocked until the exact ROM passes the retained live
+checks in [the release playtest checklist](verification/PLAYTEST.md), including
+all three save/reload files, battle flow, the campaign, audible sound, and an
+on-screen playable demo. Source tests alone cannot clear this gate. The current
+ROM's approved emulator boot still times out; its test session was closed.
+
 FIGHT now resolves by move priority and species Speed. Quick Attack goes first
 against ordinary moves; equal priority uses Speed, and ties use a random side.
 Foe paralysis lowers Speed. Each side acts at most once; fainting before an
