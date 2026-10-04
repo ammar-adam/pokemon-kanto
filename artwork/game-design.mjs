@@ -437,7 +437,7 @@ function bindActors(s,visiting=new Set()){
   visiting.delete(s.id);s.actorBindingsReady=true;
 }
 for(const s of plan.customScripts)bindActors(s);
-// The compiler strips all zeroes from $0$ in shared text; pass it explicitly.
+// The compiler strips the sole zero from $0$ in shared text; pass it explicitly.
 for(const s of plan.customScripts)walkEvents(s.script,e=>{
   if(e.args?.text!==undefined){
     const replace=text=>text.replace(/\$0\$/g,()=>{s.variables.V0={id:'V0',name:'Level',passByReference:true};return '$V0$';});
@@ -452,6 +452,13 @@ for(const s of [...plan.customScripts,...plan.scripts]){
   }});
   delete s.actorBindingsReady;
 }
+// Outside shared scripts, $00$ survives the compiler's one-zero text trim.
+for(const s of plan.scripts)walkEvents(s.events,e=>{
+  if(e.args?.text!==undefined){
+    const fix=text=>text.replace(/\$0\$/g,'$00$');
+    e.args.text=Array.isArray(e.args.text)?e.args.text.map(fix):fix(e.args.text);
+  }
+});
 const entities=[...plan.actors,...plan.triggers];
 if(new Set(entities.map(e=>e.id)).size!==entities.length)throw new Error('Duplicate native actor or trigger ID');
 plan.statistics={eventCount:plan.scripts.reduce((n,s)=>n+count(s.events),0),scriptCount:plan.scripts.length,actorCount:plan.actors.length,triggerCount:plan.triggers.length,variables:plan.variables.length};

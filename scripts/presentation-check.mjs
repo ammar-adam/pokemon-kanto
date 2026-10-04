@@ -10,6 +10,13 @@ const hash=(bytes,kind='sha256')=>createHash(kind).update(bytes).digest('hex');
 const plan=json('artwork/game-plan.json'),ids=json('artwork/pokemon-resource-ids.json');
 assert.equal(new Set(plan.scripts.map(s=>JSON.stringify(s.target))).size,plan.scripts.length,'one definition per native script owner');
 function events(list){return list.flatMap(e=>[e,...Object.values(e.children||{}).flatMap(events)]);}
+for(const script of [...plan.scripts,...plan.customScripts])for(const e of events(script.events||script.script)){
+  if(e.args?.text!==undefined)for(const page of [].concat(e.args.text)){
+    assert.ok(!page.includes('$0$'),'text must not create the compiler default local variable');
+  }
+}
+const rawHud=plan.scripts.find(s=>s.events.some(e=>e.command==='EVENT_TEXT_DRAW'&&e.args.text.startsWith('LV ')));
+assert.ok(rawHud.events.some(e=>e.args?.text==='LV %D3$00$'),'direct HUD level uses the global-zero escape');
 for(const script of plan.customScripts){
   assert.ok(events(script.script).filter(e=>e.command==='EVENT_ACTOR_SET_SPRITE').length<=16,
     'portrait lookup must stay bank-sized: '+script.name);
