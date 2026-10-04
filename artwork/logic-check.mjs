@@ -24,7 +24,7 @@ function test(name,fn){fn();results.push({name,passed:true});console.log('PASS '
 class Halt { constructor(kind,args){this.kind=kind;this.args=args;} }
 // This executes authored event semantics for unit checks, not a ROM or emulator.
 class Logic {
-  constructor(vars={},choices=[],rolls=[]){this.v={...vars};this.choices=[...choices];this.rolls=[...rolls];this.trace=[];this.text=[];this.steps=0;this.saved=null;}
+  constructor(vars={},choices=[],rolls=[]){this.v={...vars};this.choices=[...choices];this.rolls=[...rolls];this.trace=[];this.text=[];this.steps=0;this.slots={};this.loadBranches={};this.textSpeed=null;}
   get(v){return this.v[v]||0;}
   val(x){
     if(x.type==='variable')return this.get(x.value);
@@ -51,9 +51,11 @@ class Logic {
     case 'EVENT_GOTO_LABEL':throw new Halt('goto',a.label);
     case 'EVENT_SWITCH_SCENE':throw new Halt('switch',a);
     case 'EVENT_SCENE_POP_STATE':throw new Halt('pop',a);
-    case 'EVENT_IF_SAVED_DATA':this.body(e.children[this.saved?'true':'false']||[]);break;
-    case 'EVENT_SAVE_DATA':this.saved={...this.v};this.body(e.children.true||[]);break;
-    case 'EVENT_LOAD_DATA':assert.ok(this.saved);this.v={...this.saved};throw new Halt('load',a);
+    case 'EVENT_IF_SAVED_DATA':this.body(e.children[this.slots[a.saveSlot]?'true':'false']||[]);break;
+    case 'EVENT_SAVE_DATA':this.slots[a.saveSlot]={...this.v};this.loadBranches[a.saveSlot]=e.children.load||[];this.body(e.children.true||[]);break;
+    case 'EVENT_PEEK_DATA':assert.ok(this.slots[a.saveSlot]);this.v[a.variableDest]=this.slots[a.saveSlot][a.variableSource]||0;break;
+    case 'EVENT_LOAD_DATA':assert.ok(this.slots[a.saveSlot]);this.v={...this.slots[a.saveSlot]};this.body(this.loadBranches[a.saveSlot]||[]);throw new Halt('load',a);
+    case 'EVENT_TEXT_SET_ANIMATION_SPEED':this.textSpeed=a.speed;break;
     case 'EVENT_SET_INPUT_SCRIPT':case 'EVENT_MUSIC_PLAY':break;
     default:assert.ok(['EVENT_TEXT','EVENT_TEXT_DRAW','EVENT_DEFINE_LABEL','EVENT_ACTOR_SET_SPRITE','EVENT_ACTOR_SET_STATE','EVENT_ACTOR_EFFECTS','EVENT_ACTOR_HIDE','EVENT_ACTOR_SHOW','EVENT_ACTOR_SET_POSITION','EVENT_SOUND_PLAY_EFFECT','EVENT_SCRIPT_LOCK','EVENT_SCRIPT_UNLOCK','EVENT_REMOVE_INPUT_SCRIPT','EVENT_SCENE_PUSH_STATE','EVENT_SCENE_RESET_STATE'].includes(e.command),'known native event '+e.command);
   }}
@@ -79,9 +81,9 @@ test('Poison and seed use one sixteenth HP, clamp, and cannot drain a fainted fo
   l=new Logic({...base,6:160,5:2,28:1,3:10});l.run(residual);assert.equal(l.get(5),0);assert.equal(l.get(3),12);assert.equal(l.get(41),12);
   l=new Logic({...base,303:1,28:1,3:0});l.run(residual);assert.equal(l.get(5),28);
 });
-test('New game begins at home without a starter, Pokedex, or free balls',()=>{const l=new Logic({},[1]);const end=l.run(scenes.Title.script);assert.equal(end.kind,'switch');assert.equal(end.args.sceneId,scenes.red_house.id);assert.equal(l.get(0),5);assert.equal(l.get(2),0);assert.equal(l.get(8),0);assert.equal(l.get(1),0);assert.equal(l.get(248),0);assert.equal(l.get(133),3000);});
-test('New game clears a prior collection and badge',()=>{const l=new Logic({12:1,30:1,31:1,32:1,10:3},[1]);l.run(scenes.Title.script);assert.equal(l.get(12),0);assert.equal(l.get(30),0);assert.equal(l.get(31),0);assert.equal(l.get(10),0);});
-test('Continue loads an existing journal without starting a new game',()=>{const l=new Logic({},[2]);l.saved={...base,12:1};assert.equal(l.run(scenes.Title.script).kind,'load');assert.equal(l.get(12),1);assert.equal(l.get(31),1);});
+test('New game begins at home without a starter, Pokedex, or free balls',()=>{const l=new Logic({},[1,1,1]);const end=l.run(scenes.Title.script);assert.equal(end.kind,'switch');assert.equal(end.args.sceneId,scenes.red_house.id);assert.equal(l.get(0),5);assert.equal(l.get(2),0);assert.equal(l.get(8),0);assert.equal(l.get(1),0);assert.equal(l.get(248),0);assert.equal(l.get(133),3000);assert.equal(l.get(22),11);assert.equal(l.textSpeed,1);});
+test('New game clears a prior collection and badge',()=>{const l=new Logic({12:1,30:1,31:1,32:1,10:3},[1,1,1]);l.run(scenes.Title.script);assert.equal(l.get(12),0);assert.equal(l.get(30),0);assert.equal(l.get(31),0);assert.equal(l.get(10),0);});
+test('Continue previews and loads the chosen file without starting a new game',()=>{for(let slot=0;slot<3;slot++){const l=new Logic({},[2,slot+1,1]);l.slots[slot]={...base,12:1};assert.equal(l.run(scenes.Title.script).kind,'load');assert.equal(l.get(12),1);assert.equal(l.get(31),1);assert.ok(l.text.some(t=>t.startsWith(`FILE ${slot+1} - RED`)));assert.ok(!l.trace.includes('EVENT_RESET_VARIABLES'));}});
 test('Each starter ball grants exactly one level-five partner after meeting Oak',()=>{for(let starter=1;starter<=3;starter++){const l=new Logic({0:5},[1]);l.run(named['Professor Oak'].script);l.run(named[roster[starter-1].name+' Ball'].script);assert.equal(l.get(1),starter);assert.equal(l.get(29+starter),1);assert.equal(l.get(39+starter),referenceHP(roster[starter-1].dex,5));assert.equal(l.get(3),l.get(2));assert.equal(l.get(49+starter),1);assert.equal(l.get(59+starter),5);assert.equal(l.get(100+(starter-1)*4),35);assert.equal(l.get(10),1);assert.equal(l.get(25),1);assert.equal(l.get(8),0);}});
 function referenceDamage(attacker,defender,level,enemyLevel,power,type,multipliers=[],critical=false,roll=255){
   const special=['FIRE','WATER','GRASS','ELECTRIC','ICE','PSYCHIC','DRAGON'].includes(type);
@@ -126,8 +128,13 @@ test('Bag Back does not fall through to Party or Run',()=>{const l=new Logic(bas
 test('Party switching spends one turn without accidentally running',()=>{const l=new Logic({...base,33:1,53:1,43:36},[3,4,4],[1,95,255]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(1),4);assert.equal(l.get(43),referenceHP(25,3)-referenceDamage(7,25,3,3,35,'NORMAL'));});
 test('Fainting automatically brings in the next healthy owned partner',()=>{const l=new Logic({...base,3:1,41:1,32:1,52:1,42:36,5:100,6:100},[1,1,4],[2,16,255,1,95,255]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(41),0);assert.equal(l.get(1),3);assert.equal(l.get(3),referenceHP(7,3));});
 test('Full-party defeat heals and returns to an accessible town tile',()=>{const l=new Logic({...base,3:1,41:1,5:100,6:100},[1,1],[2,16,255,1,95,255]);const end=l.run(scenes.battlefield.script);assert.equal(end.kind,'switch');assert.equal(end.args.sceneId,scenes.fernvale.id);assert.equal(l.get(1),2);assert.equal(l.get(41),referenceHP(1,3));});
-test('Nested overworld party menu cannot accidentally save',()=>{const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');const l=new Logic({...base,32:1,52:1,42:36},[1,3]);l.run(pause.children.true);assert.equal(l.get(1),3);assert.equal(l.saved,null);});
-test('Explicit Save produces a journal snapshot',()=>{const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');const l=new Logic(base,[3]);l.run(pause.children.true);assert.equal(l.saved[31],1);assert.equal(l.saved[0],3);});
+test('Nested overworld party menu cannot accidentally save',()=>{const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');const l=new Logic({...base,32:1,52:1,42:36},[1,3]);l.run(pause.children.true);assert.equal(l.get(1),3);assert.deepEqual(l.slots,{});});
+test('Explicit Save produces an independent snapshot in each of three files',()=>{const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');const l=new Logic({...base,22:11});for(let slot=0;slot<3;slot++){l.v[133]=3000+slot;l.choices=[3,slot+1,1];l.run(pause.children.true);assert.equal(l.slots[slot][31],1);assert.equal(l.slots[slot][22],11+slot);}assert.deepEqual(Object.values(l.slots).map(s=>s[133]),[3000,3001,3002]);});
+test('Cancel at either save menu preserves every file and the active file',()=>{const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');for(const choices of [[3,0],[3,4],[3,2,0],[3,2,1]]){const l=new Logic({...base,22:11},choices);l.slots[1]={133:999};l.run(pause.children.true);assert.deepEqual(l.slots,{1:{133:999}});assert.equal(l.get(22),11);assert.ok(!l.trace.includes('EVENT_SAVE_DATA'));}});
+test('Overwrite requires explicit confirmation and only changes the chosen file',()=>{const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');const l=new Logic({...base,22:21},[3,2,2]);l.slots={0:{133:1},1:{133:2},2:{133:3}};l.run(pause.children.true);assert.equal(l.slots[1][31],1);assert.equal(l.slots[1][22],22);assert.deepEqual(l.slots[0],{133:1});assert.deepEqual(l.slots[2],{133:3});});
+test('New adventures never erase existing files, including a reused file',()=>{for(const pace of [1,2,3]){const l=new Logic({},[1,2,2,pace]);l.slots={0:{12:1},1:{12:1,133:777},2:{10:50}};const before=structuredClone(l.slots);assert.equal(l.run(scenes.Title.script).kind,'switch');assert.deepEqual(l.slots,before);assert.equal(l.get(22),[12,2,22][pace-1]);assert.equal(l.textSpeed,[1,3,0][pace-1]);assert.ok(!l.trace.includes('EVENT_SAVE_DATA'));}});
+test('Backing out of setup or an empty Continue file returns to the opening menu',()=>{for(const choices of [[1,0,1,3,1],[1,2,1,1,3,1],[2,1,1,3,1],[2,2,0,1,3,1]]){const l=new Logic({},choices);l.slots[1]={10:42};const end=l.run(scenes.Title.script);assert.equal(end.kind,'switch');assert.equal(l.get(22),13);assert.deepEqual(l.slots[1],{10:42});}});
+test('Text options preserve the file number and reload through the saved continuation',()=>{const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');for(const choice of [1,2,3]){const l=new Logic({...base,22:12},[7,choice]);l.run(pause.children.true);assert.equal(l.get(22)%10,2);assert.equal(l.textSpeed,[1,3,0][choice-1]);l.choices=[3,2,1];l.run(pause.children.true);l.choices=[2,2,1];assert.equal(l.run(scenes.Title.script).kind,'load');assert.equal(l.textSpeed,[1,3,0][choice-1]);assert.equal(l.text.filter(t=>t.includes('SAVED TO')).length,1);}const l=new Logic({...base,22:23},[7,0]);l.run(pause.children.true);assert.equal(l.get(22),23);});
 test('Brock advances from Geodude to level fourteen Onix and awards Boulder Badge',()=>{const l=new Logic({...base,19:1,20:1,5:0,71:5});l.run(named.VICTORY.script);assert.equal(l.get(20),2);assert.equal(l.get(4),7);assert.equal(l.get(7),14);assert.equal(l.get(0),4);assert.equal(l.get(2),referenceHP(1,4));assert.equal(l.run(named.VICTORY.script).kind,'pop');assert.equal(l.get(12),1);assert.equal(l.get(9),3);});
 test('Nurse Joy restores HP and PP without giving free items',()=>{const l=new Logic({...base,8:0,9:0,41:0,104:0,61:3});l.run(named['Nurse Joy'].script);assert.equal(l.get(41),referenceHP(1,3));assert.equal(l.get(104),35);assert.equal(l.get(61),3);assert.equal(l.get(8),0);assert.equal(l.get(9),0);});
 test('Six-Pokemon party sends a seventh unique catch to PC storage',()=>{const l=new Logic({...base,25:6,10:6,4:7,5:1,7:4},[1],[100]);assert.equal(l.run(named.BAG.script).kind,'pop');assert.equal(l.get(36),1);assert.equal(l.get(56),0);assert.equal(l.get(25),6);assert.equal(l.get(66),4);assert.equal(l.get(46),1);});
@@ -323,8 +330,8 @@ test('Fuji, Safari, Silph and Mansion objectives set the required quest flags',(
 });
 test('Hall of Fame saves the completed campaign and postgame unlock',()=>{
   const oak=plan.actors.find(a=>a.sceneId===scenes.hall_of_fame.id&&a.name==='Professor Oak');
-  const l=new Logic({...base,196:1});l.run(byId[oak.id].script);
-  assert.equal(l.get(220),1);assert.equal(l.saved[220],1);assert.equal(l.saved[196],1);
+  const l=new Logic({...base,196:1},[1,1]);l.run(byId[oak.id].script);
+  assert.equal(l.get(220),1);assert.equal(l.slots[0][220],1);assert.equal(l.slots[0][196],1);
 });
 test('Healing keeps purchased supplies instead of resetting them',()=>{
   const l=new Logic({...base,8:50,9:40});l.run(named['Nurse Joy'].script);assert.equal(l.get(8),50);assert.equal(l.get(9),40);

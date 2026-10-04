@@ -12,6 +12,10 @@
   and clamp damage and healing.
 - Expanded opening conversations explain Oak's research, the parcel errand,
   and the route from Pallet toward Pewter.
+- Three independent save files, explicit overwrite confirmation, and a Continue
+  preview showing badges and Pokedex progress. New Game never clears save data.
+- Fast, Normal, and Instant text choices during setup and in Start > Options;
+  each saved game retains its text preference.
 
 ## Install
 
@@ -22,9 +26,10 @@ does not require development tools.
 
 ## Verification and Limits
 
-The source suite passes 83 gameplay-logic checks, HP and move cases covering
+The source suite passes 88 gameplay-logic checks, HP and move cases covering
 all 151 species and levels 1-100, plus navigation, sprite, music-cue, and memory
 checks. The included release.json records native-build checks and the ROM hash.
+The linked engine save table is checked against the cartridge's memory capacity.
 Audio output, controller responsiveness, save/reload, and this revision on real
 hardware remain unverified because runtime testing was unavailable.
 

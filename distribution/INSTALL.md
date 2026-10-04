@@ -42,6 +42,22 @@ cancels, Start opens the field menu. Preserve your emulator's save file when upd
 Start a new game for v0.4.0-alpha.5. Its progression and memory layout are incompatible
 with older saves; back up your old save instead of overwriting it.
 
+## Starting And Saving
+
+1. Choose **New Game**, select File 1, 2, or 3, then choose your text speed.
+   Meet Professor Oak at his lab south of your home in Pallet Town.
+2. Press **Start > Save**, choose a file, and confirm. An occupied file asks
+   before replacing its progress. Wait for the saved message before powering off.
+3. Next time, choose **Continue**, select the same file, review your badge and
+   Pokedex counts, and confirm. **Start > Options** changes text speed.
+
+Starting a new game does not erase any file; saving over one does. The three
+files live in the cartridge's battery-backed memory or your emulator's save
+file. Use your emulator's own backup/export function to preserve that file.
+Only saves from the exact same ROM build should be restored. Retail Pokemon
+Blue saves and older homebrew builds are incompatible. This release has not
+had a real save/power-cycle/load test yet; keep backups of important progress.
+
 To edit, clone the repository and open `project.gbsproj` in GB Studio 4.3.2.
 Use Play or Export ROM. See [official build documentation](https://www.gbstudio.dev/docs/build/).
 To run source checks, install Node 22+ and run `npm ci` then `npm test`.

@@ -14,6 +14,13 @@ full-width menu; B returns without spending a turn. Poison and Leech Seed now
 resolve after the opponent acts, scale with maximum HP, and clamp correctly.
 Oak, Mom, Blue, and the parcel quest have expanded direction and motivation.
 
+The opening now has New Game and Continue with three independent save files.
+New adventures offer Fast, Normal, or Instant text. Continue previews badges
+and Pokedex progress. Start > Save chooses a file and asks before overwriting;
+Start > Options changes text speed. New Game does not delete saved progress.
+These are this homebrew's saves, not compatible with retail Pokemon Blue saves
+or older alpha builds. Runtime persistence remains unverified.
+
 This is still a custom homebrew alpha, **not a 1:1 Pokemon Blue remake**.
 The maps, movement, story scenes, and several battle rules remain simplified.
 The source checks and native build do not verify runtime smoothness or sound.

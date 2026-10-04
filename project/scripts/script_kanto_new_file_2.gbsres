@@ -1,0 +1,89 @@
+{
+  "_resourceType": "script",
+  "id": "5d7c3536-25d1-58b7-bbe9-215958f82701",
+  "name": "Kanto new_file_2",
+  "symbol": "script_kanto_new_file_2",
+  "description": "Shared Kanto game logic",
+  "variables": {},
+  "actors": {},
+  "script": [
+    {
+      "id": "3cfeb71f-7121-4bd4-9155-1ac8b12b06e9",
+      "command": "EVENT_IF_SAVED_DATA",
+      "args": {
+        "saveSlot": 2
+      },
+      "children": {
+        "true": [
+          {
+            "id": "c38ef2b8-cd56-415b-8f26-81da750b7a20",
+            "command": "EVENT_TEXT",
+            "args": {
+              "text": [
+                "FILE 3 IS IN\nUSE.\nIT STAYS UNTIL",
+                "YOU SAVE OVER\nIT."
+              ],
+              "minHeight": 4,
+              "maxHeight": 5,
+              "textHeight": 3,
+              "closeButton": "a",
+              "speedIn": 0,
+              "speedOut": 0
+            }
+          },
+          {
+            "id": "3d2dfb0b-f1ee-4279-a90f-a5d3b187070c",
+            "command": "EVENT_MENU",
+            "args": {
+              "variable": "13",
+              "items": 2,
+              "option1": "KEEP FILE",
+              "option2": "NEW ADVENTURE",
+              "layout": "dialogue",
+              "cancelOnB": true,
+              "cancelOnLastOption": false
+            }
+          },
+          {
+            "id": "b33abb88-66b1-4f4e-8dfa-8fdfe1f3de10",
+            "command": "EVENT_IF",
+            "args": {
+              "condition": {
+                "type": "eq",
+                "valueA": {
+                  "type": "variable",
+                  "value": "13"
+                },
+                "valueB": {
+                  "type": "number",
+                  "value": 2
+                }
+              }
+            },
+            "children": {
+              "true": [
+                {
+                  "id": "f73d3bbd-8e45-4a72-8156-d1b73ded34b3",
+                  "command": "EVENT_CALL_CUSTOM_EVENT",
+                  "args": {
+                    "customEventId": "6857b144-a2a6-5be0-b2ec-097a17b8ccc2"
+                  }
+                }
+              ],
+              "false": []
+            }
+          }
+        ],
+        "false": [
+          {
+            "id": "b87d31da-c36e-4e6f-a9f6-f7322039df06",
+            "command": "EVENT_CALL_CUSTOM_EVENT",
+            "args": {
+              "customEventId": "6857b144-a2a6-5be0-b2ec-097a17b8ccc2"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

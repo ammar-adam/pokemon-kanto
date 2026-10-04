@@ -11,15 +11,6 @@ export function authorOpening(h){
  const change=(key,events,type='actor')=>{const s=plan.scripts.find(s=>s.target[type+'Id']===uuid(type+':'+key)&&s.target.scriptKey==='script');if(!s)throw new Error('Missing opening script '+key);s.events=events;};
  const move=(key,x,y,name)=>{const a=plan.actors.find(a=>a.id===uuid('actor:'+key));Object.assign(a,{x,y,...(name?{name}:{})});};
  const doorway=(key,x,y,events)=>{const t=plan.triggers.find(t=>t.id===uuid('trigger:'+key));Object.assign(t,{x,y});change(key,events,'trigger');};
- const title=plan.scripts.find(s=>s.target.sceneId===ids.scenes.title&&s.target.scriptKey==='script');
- const visit=events=>events.flatMap(e=>{
-   if(e.command==='EVENT_SWITCH_SCENE'&&e.args.sceneId===ids.scenes.laboratory)return [switchScene('red_house',9,13)];
-   if(e.command==='EVENT_SET_VALUE'&&['8','9'].includes(e.args.variable))e.args.value=N(0);
-   if(e.command==='EVENT_TEXT'&&JSON.stringify(e.args.text).includes('PROF. OAK'))return [say(['OAK: POKEMON AND\nPEOPLE SHARE\nTHIS WORLD.','RED, YOUR STORY\nBEGINS AT HOME\nIN PALLET TOWN.'])];
-   if(e.children)for(const k of Object.keys(e.children))e.children[k]=visit(e.children[k]);
-   return [e];
- });title.events=visit(title.events);
- const init=title.events.find(e=>e.command==='EVENT_IF'&&e.args.condition?.valueB?.value===1);init.children.true.splice(1,0,set(133,3000));
  move('mom',13,11);change('mom',[IF(1,'>',0,[say('MOM: SO THIS IS\nYOUR NEW PARTNER!\nCOME SIT WITH ME.'),...heal(),...loadHP(),say('YOU CAN ALWAYS\nCOME HOME, RED.\nI WILL BE HERE.')],[say('MOM: OAK ASKED\nFOR YOU AND BLUE\nTHIS MORNING.'),say('HIS LAB IS SOUTH\nOF HERE, BY THE\nWATER. GO SEE HIM.')])]);
  actor('red_house','bedroom pc','Home PC','logic',2,6,[IF(249,'==',0,[set(249,1),math(9,'add',1),say('WITHDREW A POTION\nFROM THE PC.')],[say('THE ITEM BOX\nIS EMPTY.')])]);
  move('prof',5,9);change('prof',[

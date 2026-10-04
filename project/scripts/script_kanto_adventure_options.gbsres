@@ -1,0 +1,146 @@
+{
+  "_resourceType": "script",
+  "id": "28e1fade-2c4f-5e7d-b5e9-f157c0705759",
+  "name": "Kanto adventure_options",
+  "symbol": "script_kanto_adventure_options",
+  "description": "Shared Kanto game logic",
+  "variables": {},
+  "actors": {},
+  "script": [
+    {
+      "id": "20604f59-5b69-4107-a75a-95ccc23e0d2f",
+      "command": "EVENT_TEXT",
+      "args": {
+        "text": [
+          "TEXT SPEED"
+        ],
+        "minHeight": 4,
+        "maxHeight": 5,
+        "textHeight": 3,
+        "closeButton": "a",
+        "speedIn": 0,
+        "speedOut": 0
+      }
+    },
+    {
+      "id": "1729945b-528a-4885-9caa-d4a10f4d6c47",
+      "command": "EVENT_MENU",
+      "args": {
+        "variable": "13",
+        "items": 3,
+        "option1": "FAST",
+        "option2": "NORMAL",
+        "option3": "INSTANT",
+        "layout": "dialogue",
+        "cancelOnB": true,
+        "cancelOnLastOption": false
+      }
+    },
+    {
+      "id": "23bb0187-ce24-437b-8246-eaabfa8da107",
+      "command": "EVENT_IF",
+      "args": {
+        "condition": {
+          "type": "gt",
+          "valueA": {
+            "type": "variable",
+            "value": "13"
+          },
+          "valueB": {
+            "type": "number",
+            "value": 0
+          }
+        }
+      },
+      "children": {
+        "true": [
+          {
+            "id": "e2db0d04-9cb4-47d9-a121-8a47ac9659aa",
+            "command": "EVENT_VARIABLE_MATH",
+            "args": {
+              "vectorX": "22",
+              "operation": "mod",
+              "other": "val",
+              "value": 10,
+              "clamp": false
+            }
+          },
+          {
+            "id": "1e82e67b-360f-4375-b21f-c8ad16610b9b",
+            "command": "EVENT_IF",
+            "args": {
+              "condition": {
+                "type": "eq",
+                "valueA": {
+                  "type": "variable",
+                  "value": "13"
+                },
+                "valueB": {
+                  "type": "number",
+                  "value": 1
+                }
+              }
+            },
+            "children": {
+              "true": [
+                {
+                  "id": "e20c7f80-74a2-4ff0-a9d8-ac2672ff1851",
+                  "command": "EVENT_VARIABLE_MATH",
+                  "args": {
+                    "vectorX": "22",
+                    "operation": "add",
+                    "other": "val",
+                    "value": 10,
+                    "clamp": false
+                  }
+                }
+              ],
+              "false": []
+            }
+          },
+          {
+            "id": "b6ffe4b6-3830-4174-bd7c-52917b7f569d",
+            "command": "EVENT_IF",
+            "args": {
+              "condition": {
+                "type": "eq",
+                "valueA": {
+                  "type": "variable",
+                  "value": "13"
+                },
+                "valueB": {
+                  "type": "number",
+                  "value": 3
+                }
+              }
+            },
+            "children": {
+              "true": [
+                {
+                  "id": "5a32ba94-9a6b-4d71-84db-9c4f74fdfdec",
+                  "command": "EVENT_VARIABLE_MATH",
+                  "args": {
+                    "vectorX": "22",
+                    "operation": "add",
+                    "other": "val",
+                    "value": 20,
+                    "clamp": false
+                  }
+                }
+              ],
+              "false": []
+            }
+          },
+          {
+            "id": "4c73a468-8bb4-4fb6-ae8b-ff9823e271b3",
+            "command": "EVENT_CALL_CUSTOM_EVENT",
+            "args": {
+              "customEventId": "d4141663-9c60-5f1f-ba0a-63f9508b282e"
+            }
+          }
+        ],
+        "false": []
+      }
+    }
+  ]
+}

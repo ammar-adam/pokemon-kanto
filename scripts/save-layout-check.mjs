@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {inspectSaveLayout} from './save-layout.mjs';
+const rom=Buffer.alloc(0x8000),symbols={_save_points:0x14000};
+rom[0x149]=3;
+const sizes=[4096,114,2,2,2,2,1,40,8,20,8,1,2,20,3,2,64,1176,2,2,1,2,2];
+let target=0xc000;
+sizes.forEach((size,i)=>{const at=0x4000+i*5;rom.writeUInt16LE(target,at);rom.writeUInt16LE(size,at+2);rom[at+4]=i;target+=size;});
+const layout=inspectSaveLayout(rom,symbols);
+assert.equal(layout.bytesPerFile,5647);assert.equal(layout.fileCount,3);
+assert.deepEqual(layout.files.map(f=>f.bank),[0,1,2]);
+assert.equal(layout.runtimePersistenceVerified,false);
+assert.throws(()=>inspectSaveLayout(rom,{}),/Missing linked/);
+const small=Buffer.from(rom);small[0x149]=2;assert.throws(()=>inspectSaveLayout(small,symbols),/exceed cartridge/);
+const corrupt=Buffer.from(rom);corrupt[0x4004]=9;assert.throws(()=>inspectSaveLayout(corrupt,symbols),/Unexpected/);
+assert.throws(()=>inspectSaveLayout(rom.subarray(0,0x4007),symbols),/leaves its ROM/);
+console.log('Native save-table parser checks passed; persistence still requires a ROM playtest.');

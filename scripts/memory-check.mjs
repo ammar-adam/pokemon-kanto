@@ -8,7 +8,7 @@ function walk(value){
   if(!value||typeof value!=='object')return;
   if(value.type==='variable'&&/^\d+$/.test(value.value))refs.add(String(value.value));
   for(const [key,item]of Object.entries(value)){
-    if(['variable','vectorX','vectorY'].includes(key)&&/^\d+$/.test(item))refs.add(String(item));
+    if(['variable','variableSource','variableDest','vectorX','vectorY'].includes(key)&&/^\d+$/.test(item))refs.add(String(item));
     if(typeof item==='string')for(const match of item.matchAll(/\$(\d+)\$/g))refs.add(match[1]);
     if(typeof item==='object')walk(item);
   }

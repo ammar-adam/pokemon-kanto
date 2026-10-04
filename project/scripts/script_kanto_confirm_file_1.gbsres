@@ -1,0 +1,138 @@
+{
+  "_resourceType": "script",
+  "id": "40eba187-426b-55c4-ba03-b2627f1dba54",
+  "name": "Kanto confirm_file_1",
+  "symbol": "script_kanto_confirm_file_1",
+  "description": "Shared Kanto game logic",
+  "variables": {},
+  "actors": {},
+  "script": [
+    {
+      "id": "1d782458-d69f-4b3c-9f83-061178f1e5b1",
+      "command": "EVENT_IF_SAVED_DATA",
+      "args": {
+        "saveSlot": 1
+      },
+      "children": {
+        "true": [
+          {
+            "id": "c0c5532e-37c4-4680-a767-e44d55e49e4c",
+            "command": "EVENT_TEXT",
+            "args": {
+              "text": [
+                "FILE 2 HAS A\nSAVED ADVENTURE.\nREPLACE IT?"
+              ],
+              "minHeight": 4,
+              "maxHeight": 5,
+              "textHeight": 3,
+              "closeButton": "a",
+              "speedIn": 0,
+              "speedOut": 0
+            }
+          },
+          {
+            "id": "e01ee64f-951f-4e78-9ddd-98fc66dd9860",
+            "command": "EVENT_MENU",
+            "args": {
+              "variable": "13",
+              "items": 2,
+              "option1": "KEEP FILE",
+              "option2": "OVERWRITE",
+              "layout": "dialogue",
+              "cancelOnB": true,
+              "cancelOnLastOption": false
+            }
+          },
+          {
+            "id": "74222fc5-880d-405b-813f-4f1d50d5d30e",
+            "command": "EVENT_IF",
+            "args": {
+              "condition": {
+                "type": "eq",
+                "valueA": {
+                  "type": "variable",
+                  "value": "13"
+                },
+                "valueB": {
+                  "type": "number",
+                  "value": 2
+                }
+              }
+            },
+            "children": {
+              "true": [
+                {
+                  "id": "476d2ca7-df5f-4594-b7d0-501a11406f75",
+                  "command": "EVENT_CALL_CUSTOM_EVENT",
+                  "args": {
+                    "customEventId": "a2a8ff33-636e-53cb-b4b9-4bfd90e8cdc3"
+                  }
+                }
+              ],
+              "false": []
+            }
+          }
+        ],
+        "false": [
+          {
+            "id": "d00f09a2-ffeb-4947-8c94-e23de1055222",
+            "command": "EVENT_TEXT",
+            "args": {
+              "text": [
+                "SAVE TO FILE 2?"
+              ],
+              "minHeight": 4,
+              "maxHeight": 5,
+              "textHeight": 3,
+              "closeButton": "a",
+              "speedIn": 0,
+              "speedOut": 0
+            }
+          },
+          {
+            "id": "ff38812b-d6b8-4643-84b8-dce3f0daff8d",
+            "command": "EVENT_MENU",
+            "args": {
+              "variable": "13",
+              "items": 2,
+              "option1": "SAVE",
+              "option2": "CANCEL",
+              "layout": "dialogue",
+              "cancelOnB": true,
+              "cancelOnLastOption": false
+            }
+          },
+          {
+            "id": "44e2a6e8-74a2-4fd8-a2a8-a71d8d110058",
+            "command": "EVENT_IF",
+            "args": {
+              "condition": {
+                "type": "eq",
+                "valueA": {
+                  "type": "variable",
+                  "value": "13"
+                },
+                "valueB": {
+                  "type": "number",
+                  "value": 1
+                }
+              }
+            },
+            "children": {
+              "true": [
+                {
+                  "id": "a397e355-67de-4e5d-a04c-c7718ea2a45f",
+                  "command": "EVENT_CALL_CUSTOM_EVENT",
+                  "args": {
+                    "customEventId": "a2a8ff33-636e-53cb-b4b9-4bfd90e8cdc3"
+                  }
+                }
+              ],
+              "false": []
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

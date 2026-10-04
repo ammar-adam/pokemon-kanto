@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scores } from '../artwork/music-score.mjs';
+import { inspectSaveLayout } from './save-layout.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const resultsPath = process.argv[2] || path.resolve(root, '../../../outputs/setup-verification/results.json');
@@ -20,6 +21,7 @@ if (build.result.rom.sha256 !== sha256 || inspect.result.sha256 !== sha256 || !i
 const symbolsText=await readFile(build.result.debugArtifacts.noiPath,'utf8');
 const globalsText=await readFile(build.result.debugArtifacts.globalsPath,'utf8');
 const symbols=Object.fromEntries([...symbolsText.matchAll(/^DEF (\S+) 0x([0-9A-F]+)$/gmi)].map(m=>[m[1],parseInt(m[2],16)]));
+const saveLayout=inspectSaveLayout(rom,symbols);
 const compiledMusic=Object.keys(scores).map(key=>{
   const symbol='_music_kanto_'+key+'_Data',address=symbols[symbol];
   if(!Number.isInteger(address)||address<0x10000)throw new Error('Music missing from the linked ROM: '+key);
@@ -52,6 +54,7 @@ const receipt = {
   headerValid: inspect.result.valid,
   compiledCalls,
   compiledMusic,
+  saveLayout,
   projectRevision: build.result.debugArtifacts?.sourceProvenance?.projectRevision || null,
   memory: { variableCount:variableOffsets.length, variableCapacity, dataEnd, reservedStackStart:symbols['.STACK'], gapBytes:symbols['.STACK']-dataEnd, runtimeStackVerified:false },
   sourceChecks: 'npm test passed locally; GitHub Actions checks source only',

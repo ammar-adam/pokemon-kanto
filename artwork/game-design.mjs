@@ -12,6 +12,7 @@ import { moveLearningAuthoring, movesAtLevel } from './move-learning.mjs';
 import { playerMoveEffects } from './player-move-effects.mjs';
 import { enemyMoveAuthoring, enemyBattleStateAuthoring } from './enemy-moves.mjs';
 import { musicId,sceneScore } from './music-score.mjs';
+import { adventureMenu } from './adventure-menu.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ids = JSON.parse(await readFile(path.join(root,'artwork/pokemon-resource-ids.json'),'utf8'));
@@ -57,7 +58,7 @@ const fx = actor => E('EVENT_ACTOR_EFFECTS',{actorId:uuid('actor:'+actor),effect
 const vars = {
   level:0, active:1, maxHP:2, hp:3, enemy:4, enemyHP:5, enemyMax:6, enemyLevel:7,
   capsules:8,potions:9,caught:10,wins:11,badge:12,choice:13,move:14,roll:15,
-  damage:16,guard:17,spent:18,boss:19,bossStage:20,cooldown:21,initialized:22,pauseChoice:23,battleChoice:24,
+  damage:16,guard:17,spent:18,boss:19,bossStage:20,cooldown:21,saveFileAndTextPace:22,pauseChoice:23,battleChoice:24,
   partyCount:25,rivalDone:26,starter:27,leechSeed:28,attackDrop:29,enemyAccuracy:68,paralysis:69,
   selectedSpecies:132,cash:133,checkpoint:134,encounterChoice:135,battleStages:136,
   moveType:300,moveBonus:301,enemySleep:302,enemyPoison:303,evolutionMode:304,evolutionSource:305,evolutionDone:306,menuPage:307,attackerType:308,defenderType:309,defenderType2:310,
@@ -107,7 +108,8 @@ const living = () => [...stages.clearPlayer(),set(1,0),...chunked('living',speci
 const firstParty = () => [set(1,0),...chunked('first_party',species.map((_,i)=>EX(`$1$ == 0 && $${member(i)}$ == 1`,[set(1,i+1)]))),...loadHP()];
 const pop = () => [set(21,1),E('EVENT_SCENE_POP_STATE',{fadeSpeed:2})];
 const startBattle = () => [E('EVENT_SCENE_PUSH_STATE'),switchScene('battlefield',9,13)];
-const save = () => E('EVENT_SAVE_DATA',{saveSlot:0},{true:[say('RED SAVED\nTHE GAME.')],load:[]});
+const adventure = adventureMenu({E,IF,EX,V,set,math,say,menu,label,go,shared,hide,switchScene});
+const save = adventure.save;
 function speciesMenu(variable=13){
   const pages=[];
   for(let page=0;page<Math.ceil(species.length/7);page++){
@@ -124,11 +126,11 @@ function partyView() {
 function pokedex(){return [say(`POKEDEX\nCAUGHT $10$/${species.length}`),...speciesMenu(),...chunked('pokedex',species.map((c,i)=>IF(132,'==',i+1,[IF(own(i),'==',1,[say(`NO. ${c.dex}\n${c.name}\n${c.type} POKEMON`)],[say(`${c.name}\nNO DATA YET.`)])])) )];}
 function storage(){return [say('BILL\'S PC\nPARTY $25$/6'),...speciesMenu(),...chunked('storage',species.map((c,i)=>IF(132,'==',i+1,[EX(`$${own(i)}$ == 0 || $${retired(i)}$ == 1`,[say('NO POKEMON OF\nTHIS SPECIES IN\nYOUR COLLECTION.')],[IF(member(i),'==',1,[IF(25,'>',1,[set(member(i),0),math(25,'sub',1),IF(1,'==',i+1,[set(1,0)]),say('DEPOSITED\nIN THE PC BOX.')],[say('KEEP ONE POKEMON\nIN YOUR PARTY.')])],[IF(25,'<',6,[set(member(i),1),math(25,'add',1),say('WITHDREW POKEMON.')],[say('PARTY IS FULL.\nDEPOSIT ONE FIRST.')])])])])) ),IF(1,'==',0,firstParty())];}
 function pauseMenu() {
-  return E('EVENT_SET_INPUT_SCRIPT',{input:['start'],override:true},{true:[E('EVENT_SCRIPT_LOCK'),...shared('field_menu',[menu(23,['POKEMON','POKEDEX','SAVE','BADGES','JOURNEY','TRAVEL','CLOSE'],true,'menu'),IF(23,'==',1,partyView()),IF(23,'==',2,pokedex()),IF(23,'==',3,[save()]),IF(23,'==',4,[say('BADGES\nBOULDER $12$\nCASCADE $150$'),say('THUNDER $151$\nRAINBOW $152$'),say('SOUL $180$\nMARSH $181$'),say('VOLCANO $182$\nEARTH $183$')]),IF(23,'==',5,journeyEvents({IF,say})),IF(23,'==',6,travelMenu({IF,say,menu,switchScene}))]),E('EVENT_SCRIPT_UNLOCK')]});
+  return E('EVENT_SET_INPUT_SCRIPT',{input:['start'],override:true},{true:[E('EVENT_SCRIPT_LOCK'),...shared('field_menu',[menu(23,['POKEMON','POKEDEX','SAVE','BADGES','JOURNEY','TRAVEL','OPTIONS','CLOSE'],true,'menu'),IF(23,'==',1,partyView()),IF(23,'==',2,pokedex()),IF(23,'==',3,[save()]),IF(23,'==',4,[say('BADGES\nBOULDER $12$\nCASCADE $150$'),say('THUNDER $151$\nRAINBOW $152$'),say('SOUL $180$\nMARSH $181$'),say('VOLCANO $182$\nEARTH $183$')]),IF(23,'==',5,journeyEvents({IF,say})),IF(23,'==',6,travelMenu({IF,say,menu,switchScene})),IF(23,'==',7,adventure.options())]),E('EVENT_SCRIPT_UNLOCK')]});
 }
 for(const scene of world.map(s=>s.key).filter(s=>s in ids.scenes)) script(scene,scene,[show('player'),pauseMenu()], 'script','scene');
 
-script('title','title',[hide('player'),E('EVENT_REMOVE_INPUT_SCRIPT',{input:['start','select']}),label('title_menu'),menu(13,['NEW GAME','CONTINUE'],false),IF(13,'==',2,[E('EVENT_IF_SAVED_DATA',{saveSlot:0},{true:[E('EVENT_LOAD_DATA',{saveSlot:0})],false:[say('NO SAVE FILE YET.'),go('title_menu')]})]),IF(13,'==',1,[E('EVENT_RESET_VARIABLES'),set(0,5),set(2,0),set(8,6),set(9,3),set(22,1),say(['PROF. OAK:\nWELCOME TO THE\nWORLD OF POKEMON!','RED, YOUR JOURNEY\nBEGINS IN PALLET\nTOWN.','CHOOSE YOUR FIRST\nPOKEMON AT MY LAB.']),switchScene('laboratory',9,12,'up')]),go('title_menu')],'script','scene');
+script('title','title',adventure.title(),'script','scene');
 
 const starter = [IF(1,'==',0,[say('PROF. OAK:\nWHICH POKEMON\nWILL YOU CHOOSE?'),menu(13,species.slice(0,3).map(c=>c.name),false),set(1,V(13)),set(27,V(13)),...species.slice(0,3).map((c,i)=>IF(1,'==',i+1,[set(30+i,1),set(50+i,1),set(60+i,5),...maxHPEvents(i+1,60+i,40+i),...loadPokemonHP(i),...restorePP(i),sfx(6),say(`${c.name} JOINS\nYOUR PARTY!`)])),set(10,1),set(25,1),say(['HERE IS A POKEDEX,\nSIX POKE BALLS,\nAND THREE POTIONS.','BLUE IS WAITING\nOUTSIDE THE LAB.','EXPLORE ROUTE 1.\nTHEN WIN THE\nBOULDER BADGE!'])],[say('PROF. OAK:\nHOW IS YOUR\nPOKEDEX COMING?')])];
 actor('laboratory','prof','Professor Oak','oak',9,8,starter);
