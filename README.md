@@ -5,8 +5,18 @@
 New release packages are blocked until the exact ROM passes the retained live
 checks in [the release playtest checklist](verification/PLAYTEST.md), including
 all three save/reload files, battle flow, the campaign, audible sound, and an
-on-screen playable demo. Source tests alone cannot clear this gate. The current
-ROM's approved emulator boot still times out; its test session was closed.
+on-screen playable demo. Source tests alone cannot clear this gate. An approved
+boot of the preceding build still timed out; that test session was closed.
+The latest double-knockout build has not been executed in an emulator.
+
+Double knockouts now resolve experience eligibility before selecting a healthy
+replacement. Neither the fainted participant nor an untouched backup gains
+experience, and forced replacements clear the previous Pokemon's defensive
+effect. Regressions cover an enemy Explosion after FIGHT or an item and a player
+Explosion during Brock's team battle. All 95 integrated authored-logic checks
+and the full source suite pass locally and on GitHub. A separate static audit
+also checked trigger reachability from each of 142 distinct map arrival tiles.
+These checks do not establish live movement, sound, or save persistence.
 
 FIGHT now resolves by move priority and species Speed. Quick Attack goes first
 against ordinary moves; equal priority uses Speed, and ties use a random side.
@@ -48,7 +58,7 @@ The source checks pass locally and on GitHub. The combined 4 MiB native ROM
 build passes with all shared routines, nine critical call sites, five music
 tracks, three non-overlapping save regions, and the linked memory budget
 verified. Its SHA-256 is
-`754c464704c03d4a3731654f0d7eb3538d67178813fbc1aaa31adf39a51921c9`.
+`e26188eec28dd8ffe66fef5369b4f80fd7696d7f33d46ca34e16f463d3d7e6b2`.
 This is an unreleased local build, not a replacement for the existing download.
 It still needs live playtesting before another release or install.
 
