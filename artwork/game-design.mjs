@@ -110,7 +110,7 @@ const heal = () => chunked('heal',species.map((_,i)=>EX(`$${own(i)}$ == 1 && $${
 const loadPokemonHP = i => [set(0,V(lv(i))),...maxHPEvents(i+1,0,2),...clampHPEvents(hp(i),2),set(3,V(hp(i)))];
 const loadHP = () => indexedDispatch('load_hp',1,species.map((_,i)=>({value:i+1,events:loadPokemonHP(i)})),{IF,shared});
 const storeHP = () => indexedDispatch('store_hp',1,species.map((_,i)=>({value:i+1,events:[set(hp(i),V(3))]})),{IF,shared});
-const living = () => [...stages.clearPlayer(),set(1,0),...chunked('living',species.map((_,i)=>EX(`$1$ == 0 && $${member(i)}$ == 1 && $${hp(i)}$ > 0`,[set(1,i+1)]))),...loadHP()];
+const living = () => [set(17,0),...stages.clearPlayer(),set(1,0),...chunked('living',species.map((_,i)=>EX(`$1$ == 0 && $${member(i)}$ == 1 && $${hp(i)}$ > 0`,[set(1,i+1)]))),...loadHP()];
 const firstParty = () => [set(1,0),...chunked('first_party',species.map((_,i)=>EX(`$1$ == 0 && $${member(i)}$ == 1`,[set(1,i+1)]))),...loadHP()];
 const pop = () => [set(21,1),E('EVENT_SCENE_POP_STATE',{fadeSpeed:2})];
 const startBattle = () => [E('EVENT_SCENE_PUSH_STATE'),switchScene('battlefield',9,13)];
@@ -251,7 +251,12 @@ const trainerVictory=Object.entries(bossTeams).filter(([mode])=>Number(mode)!==1
     ...(team.badge?[invoke('heal-all'),...loadHP()]:[]),...pop()
   ])
 ])) ;
-script('battlefield','victory',[...storeHP(),sfx(7),say('FOE POKEMON\nFAINTED!'),math(11,'add',1),invoke('gain-xp'),IF(19,'==',1,[IF(20,'<',2,[math(20,'add',1),invoke('boss-config'),invoke('hud'),say('BROCK SENT\nOUT ONIX!')],[set(12,1),say(['BROCK:\nI TOOK YOU\nFOR GRANTED.','RED RECEIVED\nTHE BOULDER BADGE!','ROUTE THREE\nIS NOW OPEN.']),invoke('heal-all'),...loadHP(),...pop()])],[...trainerVictory,IF(19,'<=',3,[IF(19,'==',2,[math(26,'add',1),say('BLUE:\nSMELL YOU LATER!')]),IF(19,'==',3,[math(26,'add',2),say('YOUNGSTER:\nI LOST!')]),IF(19,'==',0,[IF(8,'<',20,[math(8,'add',1)]),say('FOUND A POKE BALL.')]),...pop()])])]);
+script('battlefield','victory',[
+  ...storeHP(),sfx(7),say('FOE POKEMON\nFAINTED!'),
+  // Resolve XP while the actual participant is still active, before replacement.
+  IF(3,'>',0,[invoke('gain-xp')],[say('YOUR POKEMON\nFAINTED!'),...living(),IF(1,'>',0,[invoke('hud'),say('THE NEXT POKEMON\nTAKES THE FIELD.')])]),
+  IF(1,'>',0,[math(11,'add',1),IF(19,'==',1,[IF(20,'<',2,[math(20,'add',1),invoke('boss-config'),invoke('hud'),say('BROCK SENT\nOUT ONIX!')],[set(12,1),say(['BROCK:\nI TOOK YOU\nFOR GRANTED.','RED RECEIVED\nTHE BOULDER BADGE!','ROUTE THREE\nIS NOW OPEN.']),invoke('heal-all'),...loadHP(),...pop()])],[...trainerVictory,IF(19,'<=',3,[IF(19,'==',2,[math(26,'add',1),say('BLUE:\nSMELL YOU LATER!')]),IF(19,'==',3,[math(26,'add',2),say('YOUNGSTER:\nI LOST!')]),IF(19,'==',0,[IF(8,'<',20,[math(8,'add',1)]),say('FOUND A POKE BALL.')]),...pop()])])])
+]);
 
 const playerEffects=playerMoveEffects({IF,EX,V,set,math,rand,say,invoke,storeHP,effectiveness,typeCode,pop,statusEffects:stages.playerStatusEffects});
 const fight=indexes=>learning.fight(indexes);
@@ -264,7 +269,7 @@ const battle=[...stages.reset(),hide('player'),E('EVENT_REMOVE_INPUT_SCRIPT',{in
   IF(24,'==',1,[invoke('fight')]),
   IF(24,'==',2,[invoke('bag')]),IF(24,'==',3,[invoke('party')]),IF(24,'==',4,[IF(19,'!=',0,[say('NO RUNNING FROM\nA TRAINER BATTLE!')],[say('GOT AWAY SAFELY.'),...pop()])]),
 IF(18,'>',0,[
-  IF(5,'<=',0,[set(5,0),IF(3,'<=',0,living()),IF(1,'>',0,[invoke('victory')]),go('turn')]),
+  IF(5,'<=',0,[set(5,0),invoke('victory'),go('turn')]),
   EX('$3$ > 0 && $18$ == 1',[invoke('counter')]),
   ...shared('end_turn_residual',[
     EX('$303$ == 1 && $5$ > 0 && $3$ > 0',[
@@ -275,8 +280,8 @@ IF(18,'>',0,[
       math(5,'sub',16,'var'),math(3,'add',16,'var'),EX('$3$ > $2$',[set(3,V(2))]),...storeHP(),
       invoke('hud'),say('LEECH SEED\nDRAINED THE FOE!')])
   ]),
-  IF(5,'<=',0,[set(5,0),IF(3,'<=',0,living()),IF(1,'>',0,[invoke('victory')]),go('turn')]),
-  IF(3,'<=',0,[say('YOUR POKEMON\nFAINTED!'),...living(),IF(1,'>',0,[set(17,0),invoke('hud'),say('THE NEXT POKEMON\nTAKES THE FIELD.')])])
+  IF(5,'<=',0,[set(5,0),invoke('victory'),go('turn')]),
+  IF(3,'<=',0,[say('YOUR POKEMON\nFAINTED!'),...living(),IF(1,'>',0,[invoke('hud'),say('THE NEXT POKEMON\nTAKES THE FIELD.')])])
 ]),go('turn')];
 script('battlefield','battlefield',battle,'script','scene');
 // The Kanto route is a series of authored scenes; every gate has a reachable return.

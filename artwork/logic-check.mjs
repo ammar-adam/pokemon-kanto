@@ -349,6 +349,46 @@ test('Enemy Explosion ends a wild battle and simultaneous party defeat returns t
   l=new Logic({...base,4:dexId(101),7:50,5:referenceHP(101,50),6:referenceHP(101,50),9:1,3:1,41:1},[2,2],[4,255]);
   assert.equal(l.run(scenes.battlefield.script).kind,'switch');assert.equal(l.get(11),0);assert.equal(l.get(41),referenceHP(1,3));
 });
+test('Double KO never awards XP to a fainted participant or an untouched replacement',()=>{
+  const events=scenes.battlefield.script;
+  const start=events.findIndex(e=>e.command==='EVENT_DEFINE_LABEL'&&e.args.label==='turn');
+  assert.ok(start>=0);
+  // Exercise both completion branches: ordered FIGHT and a bag-action counter.
+  for(const choices of [[1,2],[2,2]]){
+    const l=new Logic({
+      0:50,1:82,2:159,3:1,4:103,5:129,6:129,7:50,8:6,9:1,17:1,19:0,25:2,
+      1130:1,1131:1,1132:1,1133:50,1134:0,1135:35,1136:35,1137:35,1138:35,
+      32:1,42:20,52:1,62:5,72:0,
+    },choices,[4,255]); // Slowpoke versus Electrode's Explosion; Squirtle backup.
+    assert.equal(l.run(events.slice(start)).kind,'pop');
+    assert.equal(l.get(1131),0);assert.equal(l.get(1134),0);
+    assert.equal(l.get(1136),35,'fainted before acting: no Water Gun PP spent');
+    assert.equal(l.get(1),3);assert.equal(l.get(62),5,'untouched backup must not level up');
+    assert.equal(l.get(72),0,'untouched backup must not receive XP');
+    assert.equal(l.get(11),1,'party still wins with a healthy backup');
+    assert.ok(l.text.includes('YOUR POKEMON\nFAINTED!'));
+  }
+});
+test('Double KO clears defensive effects before the next trainer opponent',()=>{
+  const events=scenes.battlefield.script;
+  const start=events.findIndex(e=>e.command==='EVENT_DEFINE_LABEL'&&e.args.label==='turn');
+  const l=new Logic({
+    0:50,1:103,2:129,3:129,4:5,5:1,6:33,7:12,19:1,20:1,25:2,
+    1340:1,1341:129,1342:1,1343:50,1344:0,1345:35,1346:35,1347:35,1348:35,
+    32:1,42:20,52:1,62:5,72:0,
+  },[1,2,1,4],[2,2,16,255]); // Light Screen, then Explosion against Brock's Geodude.
+  const originalEvent=l.event.bind(l);
+  l.event=e=>{
+    if(e.command==='EVENT_MENU'&&!l.choices.length)throw new Halt('menu',e.args);
+    originalEvent(e);
+  };
+  assert.equal(l.run(events.slice(start)).kind,'menu');
+  assert.equal(l.get(1341),0);assert.equal(l.get(1),3);
+  assert.equal(l.get(20),2,'Brock advances to Onix');
+  assert.equal(l.get(17),0,'replacement must not inherit the fainted partner guard');
+  assert.equal(l.get(62),5);assert.equal(l.get(72),0);
+  assert.equal(l.get(1344),0,'fainted participant must not receive XP');
+});
 test('The Master Ball guarantees a wild catch and cannot catch trainer Pokemon',()=>{
   const l=new Logic({...base,202:1,4:dexId(150),5:300,6:304,7:70},[4]);assert.equal(l.run(named.BAG.script).kind,'pop');assert.equal(l.get(202),0);assert.equal(l.get(pokemonVars(150).own),1);
   const blocked=new Logic({...base,202:1,19:41},[4]);blocked.run(named.BAG.script);assert.equal(blocked.get(202),1);
