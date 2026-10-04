@@ -40,3 +40,15 @@ and [Route 22 table](https://github.com/pret/pokered/blob/d2704a63c26f9ba046ade8
 The `BLUE` branches determine species and levels; the ten slot weights are
 20, 20, 15, 10, 10, 10, 5, 5, 4, and 1 percent. These encounter facts do not
 make the custom maps, battle engine, or story an exact recreation.
+
+`red-catch-rates.json` retains all 151 numeric catch rates from that same pinned
+revision. `capture-rules.mjs` implements the ordinary Poke Ball/Master Ball
+outcome checks from [ItemUseBall](https://github.com/pret/pokered/blob/d2704a63c26f9ba046ade877445216b3de0519a4/engine/items/item_effects.asm).
+It excludes other ball types, special encounter exceptions, and the original
+random generator. Tests compare native-event arithmetic with a numeric model.
+
+Speed uses the existing base-stat snapshot. Quick Attack and Counter priority,
+Speed comparison, and random tie-breaking follow the battle ordering in
+[core.asm](https://github.com/pret/pokered/blob/d2704a63c26f9ba046ade877445216b3de0519a4/engine/battle/core.asm).
+The rest of Counter's effect is not implemented. Journal text is original and
+describes this project's custom map layout and progression.

@@ -2,6 +2,32 @@
 
 ## Unreleased Battle And Blue Accuracy Pass
 
+FIGHT now resolves by move priority and species Speed. Quick Attack goes first
+against ordinary moves; equal priority uses Speed, and ties use a random side.
+Foe paralysis lowers Speed. Each side acts at most once; fainting before an
+action prevents that action and its PP charge. Speed uses fixed DV 9 and zero
+stat experience, matching this game's other stats.
+
+Poke Balls now use all 151 original catch rates and Blue's ordinary-ball
+HP/status checks. Low HP helps but no longer guarantees a catch. Sleep, poison,
+and paralysis improve the outcome; valid Master Ball targets always succeed.
+Great/Ultra/Safari Balls, shake animations, freeze/burn, and the original ROM's
+random generator are not implemented. Failed catches still spend one turn.
+
+Start > Journey now gives a specific next objective, destination, and clue
+from Oak's parcel through the gyms, League, and postgame. It follows quest
+flags, alternate routes, and the current League attempt, without changing
+progress or writing a save.
+
+The direct battle HUD now uses an escaped reference to global variable zero,
+preventing the compiler from allocating an unintended local beyond the VM
+heap. Scene initialization also declares shared scripts in dependency order,
+using reference-only events with no runtime assembly. This avoids GB Studio
+4.3.2 silently caching empty routines when nested compilation exceeds its
+depth limit. Native verification requires all 2,606 shared routines to be
+linked, rejects return-only stubs for nonempty authored routines, and checks
+nine critical call sites. Fourteen intentional no-op learning hooks are allowed.
+
 Attack/defense, type, HP, and opponent-move lookups now select a small indexed
 branch instead of scanning the entire roster. The authored attack regression
 checks every species and permits fewer than 200 comparisons; the measured
@@ -12,14 +38,18 @@ bounds, not hardware frame-rate claims.
 Viridian Forest and Route 22 now use Blue's version-specific encounter slots:
 Caterpie and Metapod dominate the forest, Pikachu remains rare, and Nidoran
 female is the common Nidoran on Route 22. Other early shared tables are retained.
-The native 4 MiB ROM builds successfully, with its linked music and three
-non-overlapping save regions verified. The cartridge still needs live
-playtesting before another release or install.
+The source checks pass locally and on GitHub. The combined 4 MiB native ROM
+build passes with all shared routines, nine critical call sites, five music
+tracks, three non-overlapping save regions, and the linked memory budget
+verified. Its SHA-256 is
+`754c464704c03d4a3731654f0d7eb3538d67178813fbc1aaa31adf39a51921c9`.
+This is an unreleased local build, not a replacement for the existing download.
+It still needs live playtesting before another release or install.
 
 The approved public emulator currently times out during opening, including
 with zero initial frames. The official browser export rejects its Windows
-temporary directory before compilation. The rebuilt ROM encountered the same
-startup timeout. All test sessions were closed; no hardware was written.
+temporary directory before compilation. Earlier rebuilt ROMs encountered the
+same startup timeout. All test sessions were closed; no hardware was written.
 These are preview blockers, not missing user consent.
 
 ## v0.4.0-alpha.5
@@ -76,7 +106,7 @@ Wild Pokemon and trainers choose uniformly from their species' current
 level-derived moves, announce the move, and use its power, type, and accuracy.
 Growl, Tail Whip, Leer, and Harden use capped physical damage modifiers.
 Recovery, drain, recoil, and fixed-damage moves have dedicated handling.
-Opponent PP, sophisticated trainer AI, full status/stage rules, speed order,
+Opponent PP, sophisticated trainer AI, full status/stage rules,
 multi-hit/multi-turn effects, and several special moves remain unfinished.
 Unsupported non-damaging effects fail rather than becoming generic attacks.
 
@@ -90,8 +120,8 @@ reference and a boundary-value matrix.
 Base data is pinned to a [pokered revision](https://github.com/pret/pokered/tree/d2704a63c26f9ba046ade877445216b3de0519a4).
 
 This is not yet the original battle engine: combat stats use fixed DV 9 and
-zero stat experience; status effects, critical hits, multi-hit moves, and capture
-remain simplified. Damage is capped
+zero stat experience; status effects, critical hits, multi-hit moves, and the
+capture features outside ordinary Poke Balls/Master Balls remain incomplete. Damage is capped
 at 999 before type modifiers. Runtime speed, audio, saves, and gameplay have
 not been verified. Start a new save and treat this as a balance-test alpha.
 
@@ -154,9 +184,10 @@ The opening remake builds on the earlier compact campaign.
   six-member party, PC storage, healing, Pokedex pages, and battery saves.
 - Color palettes vary by area, with custom map and trainer pixel art.
 
-Battles, levels, encounters, progression, and capture rules are tailored to this
-compact game. A wild Pokemon is guaranteed to be caught at one-third HP or
-less. There is one saved representative per species, not duplicate catches.
+Battles, levels, encounters, and progression are tailored to this compact game.
+The unreleased capture pass uses species catch rates, HP, and status; low HP
+alone does not guarantee success. There is one saved representative per species,
+not duplicate catches.
 This is a **complete-campaign preview**, not the original Red/Blue ROM or its
 exact maps, dialogue, or battle engine. Levels cap at 100. There is no link-cable
 multiplayer, breeding, held-item system, or original move-learning interface.
