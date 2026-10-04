@@ -135,12 +135,12 @@ export function moveLearningAuthoring({
   }
 
   function selected(index, slot, move) {
-    return once(`learned_slot_${index}_${slot}_${key(move)}`, () => [
+    return [
       IF(pp(index, slot), '<=', 0, [say('NO PP LEFT\nFOR THAT MOVE.')], [
         math(pp(index, slot), 'sub', 1), set(18, 1), set(14, slot + 1),
         say(`USED ${move}!`), ...execute(move),
       ]),
-    ]);
+    ];
   }
 
   function menuTier(index, tier) {
