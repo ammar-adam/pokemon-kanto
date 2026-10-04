@@ -158,6 +158,14 @@ test('Party switching spends one turn without accidentally running',()=>{const l
 test('Fainting automatically brings in the next healthy owned partner',()=>{const l=new Logic({...base,3:1,41:1,32:1,52:1,42:36,5:100,6:100},[1,1,4],[1,1,95,255]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(41),0);assert.equal(l.get(1),3);assert.equal(l.get(3),referenceHP(7,3));assert.equal(l.get(104),35);});
 test('Full-party defeat heals and returns to an accessible town tile',()=>{const l=new Logic({...base,3:1,41:1,5:100,6:100},[1,1],[1,1,95,255]);const end=l.run(scenes.battlefield.script);assert.equal(end.kind,'switch');assert.equal(end.args.sceneId,scenes.fernvale.id);assert.equal(l.get(1),2);assert.equal(l.get(41),referenceHP(1,3));});
 test('Nested overworld party menu cannot accidentally save',()=>{const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');const l=new Logic({...base,32:1,52:1,42:36},[1,3]);l.run(pause.children.true);assert.equal(l.get(1),3);assert.deepEqual(l.slots,{});});
+test('Journey is actionable at home, after the parcel, and during the League without changing progress',()=>{
+  const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');
+  for(const [state,expected]of [[{},'TALK TO OAK.'],[{247:1},'DELIVER OAKS'],[{248:1},'CHALLENGE BROCK.'],[{248:1,195:4},'CHALLENGE BLUE.'],[{220:1},'SEEK MEWTWO.']]){
+    const l=new Logic(state,[5]);l.run(pause.children.true);
+    assert.ok(l.text[0].includes(expected),l.text.join(' '));
+    const after={...l.v};delete after[23];assert.deepEqual(after,state);assert.deepEqual(l.slots,{});
+  }
+});
 test('Explicit Save produces an independent snapshot in each of three files',()=>{const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');const l=new Logic({...base,22:11});for(let slot=0;slot<3;slot++){l.v[133]=3000+slot;l.choices=[3,slot+1,1];l.run(pause.children.true);assert.equal(l.slots[slot][31],1);assert.equal(l.slots[slot][22],11+slot);}assert.deepEqual(Object.values(l.slots).map(s=>s[133]),[3000,3001,3002]);});
 test('Cancel at either save menu preserves every file and the active file',()=>{const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');for(const choices of [[3,0],[3,4],[3,2,0],[3,2,1]]){const l=new Logic({...base,22:11},choices);l.slots[1]={133:999};l.run(pause.children.true);assert.deepEqual(l.slots,{1:{133:999}});assert.equal(l.get(22),11);assert.ok(!l.trace.includes('EVENT_SAVE_DATA'));}});
 test('Overwrite requires explicit confirmation and only changes the chosen file',()=>{const pause=scenes.fernvale.script.find(e=>e.command==='EVENT_SET_INPUT_SCRIPT');const l=new Logic({...base,22:21},[3,2,2]);l.slots={0:{133:1},1:{133:2},2:{133:3}};l.run(pause.children.true);assert.equal(l.slots[1][31],1);assert.equal(l.slots[1][22],22);assert.deepEqual(l.slots[0],{133:1});assert.deepEqual(l.slots[2],{133:3});});

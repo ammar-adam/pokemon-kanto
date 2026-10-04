@@ -69,6 +69,5 @@ export function authorOpening(h){
  for(const e of field.script){
    if(e.command!=='EVENT_IF'||e.args.condition?.valueA?.value!=='23')continue;
    if(e.args.condition.valueB.value===2)e.children.true=[IF(248,'==',1,e.children.true,[say('OAK HAS NOT\nGIVEN YOU A\nPOKEDEX YET.')])];
-   if(e.args.condition.valueB.value===5)e.children.true=[IF(248,'==',1,e.children.true,[IF(247,'==',1,[say('RETURN OAKS\nPARCEL TO THE\nLAB IN PALLET.')],[IF(1,'==',0,[say('FIND PROFESSOR\nOAK IN PALLET\nTOWN.')],[say('VISIT THE MART\nIN VIRIDIAN\nCITY.')])])])];
  }
 }

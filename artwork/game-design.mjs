@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { additionalSpecies, bossTeams, rivalVariants, world, roster, dexId } from './campaign-world.mjs';
-import { authorFullCampaign, travelMenu, journeyEvents } from './full-campaign.mjs';
+import { authorFullCampaign, travelMenu } from './full-campaign.mjs';
 import { authorOpening } from './opening-story.mjs';
 import { authorRedProgression } from './red-progression.mjs';
 import { damageAuthoring, moveStats } from './battle-damage.mjs';
@@ -16,6 +16,7 @@ import { adventureMenu } from './adventure-menu.mjs';
 import { indexedDispatch } from './indexed-dispatch.mjs';
 import { turnOrderAuthoring } from './turn-order.mjs';
 import { captureAuthoring } from './capture-rules.mjs';
+import { storyJournal } from './story-journal.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ids = JSON.parse(await readFile(path.join(root,'artwork/pokemon-resource-ids.json'),'utf8'));
@@ -114,6 +115,7 @@ const pop = () => [set(21,1),E('EVENT_SCENE_POP_STATE',{fadeSpeed:2})];
 const startBattle = () => [E('EVENT_SCENE_PUSH_STATE'),switchScene('battlefield',9,13)];
 const adventure = adventureMenu({E,IF,EX,V,set,math,say,menu,label,go,shared,hide,switchScene});
 const save = adventure.save;
+const journal=storyJournal({IF,EX,say,shared});
 function speciesMenu(variable=13){
   const pages=[];
   for(let page=0;page<Math.ceil(species.length/7);page++){
@@ -130,7 +132,7 @@ function partyView() {
 function pokedex(){return [say(`POKEDEX\nCAUGHT $10$/${species.length}`),...speciesMenu(),...chunked('pokedex',species.map((c,i)=>IF(132,'==',i+1,[IF(own(i),'==',1,[say(`NO. ${c.dex}\n${c.name}\n${c.type} POKEMON`)],[say(`${c.name}\nNO DATA YET.`)])])) )];}
 function storage(){return [say('BILL\'S PC\nPARTY $25$/6'),...speciesMenu(),...chunked('storage',species.map((c,i)=>IF(132,'==',i+1,[EX(`$${own(i)}$ == 0 || $${retired(i)}$ == 1`,[say('NO POKEMON OF\nTHIS SPECIES IN\nYOUR COLLECTION.')],[IF(member(i),'==',1,[IF(25,'>',1,[set(member(i),0),math(25,'sub',1),IF(1,'==',i+1,[set(1,0)]),say('DEPOSITED\nIN THE PC BOX.')],[say('KEEP ONE POKEMON\nIN YOUR PARTY.')])],[IF(25,'<',6,[set(member(i),1),math(25,'add',1),say('WITHDREW POKEMON.')],[say('PARTY IS FULL.\nDEPOSIT ONE FIRST.')])])])])) ),IF(1,'==',0,firstParty())];}
 function pauseMenu() {
-  return E('EVENT_SET_INPUT_SCRIPT',{input:['start'],override:true},{true:[E('EVENT_SCRIPT_LOCK'),...shared('field_menu',[menu(23,['POKEMON','POKEDEX','SAVE','BADGES','JOURNEY','TRAVEL','OPTIONS','CLOSE'],true,'menu'),IF(23,'==',1,partyView()),IF(23,'==',2,pokedex()),IF(23,'==',3,[save()]),IF(23,'==',4,[say('BADGES\nBOULDER $12$\nCASCADE $150$'),say('THUNDER $151$\nRAINBOW $152$'),say('SOUL $180$\nMARSH $181$'),say('VOLCANO $182$\nEARTH $183$')]),IF(23,'==',5,journeyEvents({IF,say})),IF(23,'==',6,travelMenu({IF,say,menu,switchScene})),IF(23,'==',7,adventure.options())]),E('EVENT_SCRIPT_UNLOCK')]});
+  return E('EVENT_SET_INPUT_SCRIPT',{input:['start'],override:true},{true:[E('EVENT_SCRIPT_LOCK'),...shared('field_menu',[menu(23,['POKEMON','POKEDEX','SAVE','BADGES','JOURNEY','TRAVEL','OPTIONS','CLOSE'],true,'menu'),IF(23,'==',1,partyView()),IF(23,'==',2,pokedex()),IF(23,'==',3,[save()]),IF(23,'==',4,[say('BADGES\nBOULDER $12$\nCASCADE $150$'),say('THUNDER $151$\nRAINBOW $152$'),say('SOUL $180$\nMARSH $181$'),say('VOLCANO $182$\nEARTH $183$')]),IF(23,'==',5,journal),IF(23,'==',6,travelMenu({IF,say,menu,switchScene})),IF(23,'==',7,adventure.options())]),E('EVENT_SCRIPT_UNLOCK')]});
 }
 for(const scene of world.map(s=>s.key).filter(s=>s in ids.scenes)) script(scene,scene,[show('player'),pauseMenu()], 'script','scene');
 
