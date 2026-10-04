@@ -1,6 +1,25 @@
 # Pokemon Kanto: Opening Remake Preview
 
-## v0.4.0-alpha.4
+## v0.4.0-alpha.5
+
+This presentation pass adds five original chiptune tracks, authentic-design
+portraits for the first 20 species, corrected transparent backgrounds for all
+151 portrait pairs, and reference-based Red, Blue, Oak, and Nurse Joy sprites.
+Music is assigned to all 68 scenes. These are original compositions, not the
+commercial game's soundtrack.
+
+Health updates no longer reload sprites or scan the full roster. Portraits
+refresh only on battle entry and replacements. Moves and remaining PP share a
+full-width menu; B returns without spending a turn. Poison and Leech Seed now
+resolve after the opponent acts, scale with maximum HP, and clamp correctly.
+Oak, Mom, Blue, and the parcel quest have expanded direction and motivation.
+
+This is still a custom homebrew alpha, **not a 1:1 Pokemon Blue remake**.
+The maps, movement, story scenes, and several battle rules remain simplified.
+The source checks and native build do not verify runtime smoothness or sound.
+Start a new save and keep your old save backed up.
+
+## Previous Battle Pass
 
 Three separate feature commits add species-based HP, original level-up moves,
 and named opponent moves. The release remains a balance-test alpha, not the
@@ -123,7 +142,7 @@ checks the ROM hash and opens that guide; it does **not** flash a cartridge.
 Playing the ROM does not require Node, Python, GB Studio, or a connected device.
 
 D-pad moves/selects; A interacts/confirms; B cancels supported menus; Start
-opens the field menu. **Start a new game for v0.4.0-alpha.4.** Its progression and VM
+opens the field menu. **Start a new game for v0.4.0-alpha.5.** Its progression and VM
 memory layout are incompatible with older saves. Back up old `.sav` files.
 
 ## Edit And Test

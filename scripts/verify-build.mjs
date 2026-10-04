@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { scores } from '../artwork/music-score.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const resultsPath = process.argv[2] || path.resolve(root, '../../../outputs/setup-verification/results.json');
@@ -19,6 +20,11 @@ if (build.result.rom.sha256 !== sha256 || inspect.result.sha256 !== sha256 || !i
 const symbolsText=await readFile(build.result.debugArtifacts.noiPath,'utf8');
 const globalsText=await readFile(build.result.debugArtifacts.globalsPath,'utf8');
 const symbols=Object.fromEntries([...symbolsText.matchAll(/^DEF (\S+) 0x([0-9A-F]+)$/gmi)].map(m=>[m[1],parseInt(m[2],16)]));
+const compiledMusic=Object.keys(scores).map(key=>{
+  const symbol='_music_kanto_'+key+'_Data',address=symbols[symbol];
+  if(!Number.isInteger(address)||address<0x10000)throw new Error('Music missing from the linked ROM: '+key);
+  return {key,symbol,address};
+});
 const scriptAddresses=Object.entries(symbols).filter(([name])=>name.startsWith('_script_')).map(([,address])=>address).sort((a,b)=>a-b);
 const compiledCalls=[];
 for(const [source,target]of [['learned_move_tackle','logic_attack'],['learned_move_rage','logic_attack'],['enemy_move_tackle','logic_hud']]){
@@ -45,11 +51,12 @@ const receipt = {
   cartridgeType: inspect.result.cartridgeTypeName,
   headerValid: inspect.result.valid,
   compiledCalls,
+  compiledMusic,
   projectRevision: build.result.debugArtifacts?.sourceProvenance?.projectRevision || null,
   memory: { variableCount:variableOffsets.length, variableCapacity, dataEnd, reservedStackStart:symbols['.STACK'], gapBytes:symbols['.STACK']-dataEnd, runtimeStackVerified:false },
   sourceChecks: 'npm test passed locally; GitHub Actions checks source only',
   romExecuted: false,
-  runtimeLimit: 'Public emulator timed out; browser preview unavailable. Gameplay, saves, and hardware play remain unverified.'
+  runtimeLimit: 'Public emulator denied by app policy; browser preview unavailable. Gameplay timing, audio output, saves, and this revision on hardware remain unverified.'
 };
 await writeFile(path.join(root, 'verification/current-release.json'), JSON.stringify(receipt, null, 2) + '\n');
 console.log(JSON.stringify({ sha256, sizeBytes: rom.length, projectRevision: receipt.projectRevision }));

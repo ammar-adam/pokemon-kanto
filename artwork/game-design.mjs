@@ -11,6 +11,7 @@ import { hpAuthoring } from './hp-stats.mjs';
 import { moveLearningAuthoring, movesAtLevel } from './move-learning.mjs';
 import { playerMoveEffects } from './player-move-effects.mjs';
 import { enemyMoveAuthoring, enemyBattleStateAuthoring } from './enemy-moves.mjs';
+import { musicId,sceneScore } from './music-score.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ids = JSON.parse(await readFile(path.join(root,'artwork/pokemon-resource-ids.json'),'utf8'));
@@ -84,7 +85,11 @@ function chunked(name,events,size=8){
   for(let at=0;at<events.length;at+=size)calls.push(...shared(name+'_'+at,events.slice(at,at+size)));
   return shared(name,calls);
 }
-function script(scene,key,events,scriptKey='script',entityType='actor') { plan.scripts.push({target:{sceneId:ids.scenes[scene],...(entityType==='scene'?{}:{[entityType+'Id']:uuid(entityType+':'+key)}),scriptKey},events}); }
+function script(scene,key,events,scriptKey='script',entityType='actor') {
+  const target={sceneId:ids.scenes[scene],...(entityType==='scene'?{}:{[entityType+'Id']:uuid(entityType+':'+key)}),scriptKey};
+  const existing=plan.scripts.find(s=>JSON.stringify(s.target)===JSON.stringify(target));
+  if(existing)existing.events=events;else plan.scripts.push({target,events});
+}
 function actor(scene,key,name,sprite,x,y,events=[],properties={}) { plan.actors.push({sceneId:ids.scenes[scene],id:uuid('actor:'+key),name,spriteSheetId:ids.sprites[sprite],x,y,direction:'down',properties}); if(events.length)script(scene,key,events); }
 function trigger(scene,key,x,y,width,height,events) {plan.triggers.push({sceneId:ids.scenes[scene],id:uuid('trigger:'+key),name:key,x,y,width,height});script(scene,key,events,'script','trigger');}
 const stages=enemyBattleStateAuthoring({EX,set,math,say});
@@ -149,7 +154,18 @@ actor('battlefield','partner','Partner','charmander',2,11,[],{collisionGroup:'no
 const hiddenLogic=['hud','attack','counter','party','bag','victory','fight','boss-config','gain-xp','heal-all','fight0','fight1','fight2','fight3','fight4'];
 for(const [index,key] of hiddenLogic.entries()) actor('battlefield',key,key.toUpperCase(),'logic',0,index*3%18,[],{collisionGroup:'none'});
 
-const hud=[...species.flatMap((c,i)=>[IF(4,'==',i+1,[...changeSprite('enemy',c.key),draw(c.name.padEnd(10,' '),1,0),draw(`L$7$ ${c.type.padEnd(8,' ')}`,1,1)]),IF(1,'==',i+1,[...changeSprite('partner',c.key,true),draw(c.name.padEnd(10,' '),9,9)])]),draw('HP $5$/$6$   ',1,2),draw('HP $3$/$2$  ',9,10),draw('LV $0$   ',9,11)];
+// Identity uploads are infrequent; a hit only redraws the three numeric rows.
+function identify(variable, render, rows=species.map((c,i)=>({c,id:i+1})),inChunk=false) {
+  if(!inChunk&&rows.length<=16)return shared('identity_'+variable+'_'+rows[0].id,identify(variable,render,rows,true));
+  if(rows.length===1)return [IF(variable,'==',rows[0].id,render(rows[0].c))];
+  const mid=Math.floor(rows.length/2);
+  return [IF(variable,'<',rows[mid].id,identify(variable,render,rows.slice(0,mid),inChunk),identify(variable,render,rows.slice(mid),inChunk))];
+}
+const identity=()=>shared('battle_identity',[
+  ...identify(4,c=>[...changeSprite('enemy',c.key),draw(c.name.padEnd(10,' '),1,0),draw(`L$7$ ${c.type.padEnd(8,' ')}`,1,1)]),
+  ...identify(1,c=>[...changeSprite('partner',c.key,true),draw(c.name.padEnd(10,' '),9,9)])
+]);
+const hud=[draw('HP %D3$5$/%D3$6$',1,2),draw('HP %D3$3$/%D3$2$',9,10),draw('LV %D3$0$',9,11)];
 script('battlefield','hud',hud);
 
 const types=['NORMAL','FIRE','WATER','GRASS','ELECTRIC','ICE','FIGHTING','POISON','GROUND','FLYING','PSYCHIC','BUG','ROCK','GHOST','DRAGON'];
@@ -235,7 +251,21 @@ const battle=[...stages.reset(),hide('player'),E('EVENT_REMOVE_INPUT_SCRIPT',{in
   IF(134,'==',1,[switchScene('viridian',18,21)]),IF(134,'==',2,[switchScene('pewter',18,21)]),IF(134,'==',3,[switchScene('cerulean',18,21)]),IF(134,'==',4,[switchScene('vermilion',18,21)]),IF(134,'==',5,[switchScene('lavender',18,21)]),IF(134,'==',6,[switchScene('celadon',18,21)]),switchScene('fernvale',18,21)]),set(18,0),invoke('hud'),menu(24,['FIGHT','BAG','POKEMON','RUN'],false),
   IF(24,'==',1,[invoke('fight')]),
   IF(24,'==',2,[invoke('bag')]),IF(24,'==',3,[invoke('party')]),IF(24,'==',4,[IF(19,'!=',0,[say('NO RUNNING FROM\nA TRAINER BATTLE!')],[say('GOT AWAY SAFELY.'),...pop()])]),
-IF(18,'==',1,[IF(303,'==',1,[math(5,'sub',6),say('POISON HURTS\nTHE FOE!')]),EX('$28$ == 1 && $3$ > 0',[math(5,'sub',2),math(3,'add',2),EX('$3$ > $2$',[set(3,V(2))]),...storeHP(),say('LEECH SEED\nDRAINED THE FOE!')]),IF(5,'<=',0,[set(5,0),IF(3,'<=',0,living()),IF(1,'>',0,[invoke('victory')]),go('turn')]),IF(3,'>',0,[invoke('counter')]),IF(5,'<=',0,[set(5,0),IF(3,'<=',0,living()),IF(1,'>',0,[invoke('victory')]),go('turn')]),IF(3,'<=',0,[say('YOUR POKEMON\nFAINTED!'),...living(),IF(1,'>',0,[set(17,0),invoke('hud'),say('THE NEXT POKEMON\nTAKES THE FIELD.')])])]),go('turn')];
+IF(18,'==',1,[
+  IF(5,'<=',0,[set(5,0),IF(3,'<=',0,living()),IF(1,'>',0,[invoke('victory')]),go('turn')]),
+  IF(3,'>',0,[invoke('counter')]),
+  ...shared('end_turn_residual',[
+    EX('$303$ == 1 && $5$ > 0 && $3$ > 0',[
+      set(16,V(6)),math(16,'div',16),IF(16,'<',1,[set(16,1)]),math(5,'sub',16,'var'),IF(5,'<',0,[set(5,0)]),
+      invoke('hud'),say('POISON HURTS\nTHE FOE!')]),
+    EX('$28$ == 1 && $5$ > 0 && $3$ > 0',[
+      set(16,V(6)),math(16,'div',16),IF(16,'<',1,[set(16,1)]),EX('$16$ > $5$',[set(16,V(5))]),
+      math(5,'sub',16,'var'),math(3,'add',16,'var'),EX('$3$ > $2$',[set(3,V(2))]),...storeHP(),
+      invoke('hud'),say('LEECH SEED\nDRAINED THE FOE!')])
+  ]),
+  IF(5,'<=',0,[set(5,0),IF(3,'<=',0,living()),IF(1,'>',0,[invoke('victory')]),go('turn')]),
+  IF(3,'<=',0,[say('YOUR POKEMON\nFAINTED!'),...living(),IF(1,'>',0,[set(17,0),invoke('hud'),say('THE NEXT POKEMON\nTAKES THE FIELD.')])])
+]),go('turn')];
 script('battlefield','battlefield',battle,'script','scene');
 // The Kanto route is a series of authored scenes; every gate has a reachable return.
 const enter=(from,key,x,y,w,h,to,tx,ty,guard=null)=>trigger(from,key,x,y,w,h,guard? [IF(guard.variable,'==',guard.value,[switchScene(to,tx,ty,guard.direction||'up')],[say(guard.message)])]:[switchScene(to,tx,ty)]);
@@ -328,6 +358,25 @@ for(const site of world.filter(s=>s.encounters&&s.key!=='route_one')){
 }
 authorOpening({plan,ids,uuid,E,IF,EX,N,V,set,math,rand,say,menu,script,actor,trigger,switchScene,position,hide,show,heal,loadHP,storage,pauseMenu,restorePP,startBattle,sfx,maxHPEvents});
 authorRedProgression({plan,ids,uuid,actor,trainer,IF,EX,say,menu,set,startBattle});
+for(const owner of plan.scripts.filter(s=>!s.target.actorId&&!s.target.triggerId&&s.target.scriptKey==='script')) {
+  const key=Object.keys(ids.scenes).find(key=>ids.scenes[key]===owner.target.sceneId);
+  owner.events.unshift(E('EVENT_MUSIC_PLAY',{musicId:musicId(sceneScore(key))}));
+}
+// Refresh portraits on entry, party replacement, and a trainer's next opponent.
+// The second top-level HUD call is the ordinary turn menu and stays lightweight.
+for(const owner of plan.scripts.filter(s=>s.target.sceneId===ids.scenes.battlefield &&
+  (!s.target.actorId || ['party','victory'].some(key=>s.target.actorId===uuid('actor:'+key))))) {
+  let topHud=0;
+  const refresh=(events,depth=0)=>events.flatMap(e=>{
+    if(e.command==='EVENT_ACTOR_INVOKE'&&e.args.actorId===uuid('actor:hud')) {
+      const regularTurn=!owner.target.actorId&&depth===0&&++topHud===2;
+      return regularTurn?[e]:[...identity(),e];
+    }
+    for(const [branch,list] of Object.entries(e.children||{}))e.children[branch]=refresh(list,depth+1);
+    return [e];
+  });
+  owner.events=refresh(owner.events);
+}
 // GB Studio cannot resolve actor-invoke targets passed through custom-script
 // actor parameters. Export logic routines as explicit far-callable scripts.
 const invokedActors=new Set();

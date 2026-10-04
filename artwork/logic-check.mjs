@@ -54,13 +54,31 @@ class Logic {
     case 'EVENT_IF_SAVED_DATA':this.body(e.children[this.saved?'true':'false']||[]);break;
     case 'EVENT_SAVE_DATA':this.saved={...this.v};this.body(e.children.true||[]);break;
     case 'EVENT_LOAD_DATA':assert.ok(this.saved);this.v={...this.saved};throw new Halt('load',a);
-    case 'EVENT_SET_INPUT_SCRIPT':break;
+    case 'EVENT_SET_INPUT_SCRIPT':case 'EVENT_MUSIC_PLAY':break;
     default:assert.ok(['EVENT_TEXT','EVENT_TEXT_DRAW','EVENT_DEFINE_LABEL','EVENT_ACTOR_SET_SPRITE','EVENT_ACTOR_SET_STATE','EVENT_ACTOR_EFFECTS','EVENT_ACTOR_HIDE','EVENT_ACTOR_SHOW','EVENT_ACTOR_SET_POSITION','EVENT_SOUND_PLAY_EFFECT','EVENT_SCRIPT_LOCK','EVENT_SCRIPT_UNLOCK','EVENT_REMOVE_INPUT_SCRIPT','EVENT_SCENE_PUSH_STATE','EVENT_SCENE_RESET_STATE'].includes(e.command),'known native event '+e.command);
   }}
   run(events){try{this.body(events);return null;}catch(e){if(e instanceof Halt)return e;throw e;}}
 }
 const referenceHP=(dex,level)=>Math.floor((redStats[dex].hp+9)*level/50)+level+10;
 const base={0:3,1:2,2:36,3:36,4:3,5:28,6:28,7:3,8:6,9:3,10:1,11:0,12:0,19:0,25:1,27:2,31:1,41:36,51:1,60:3,61:3,62:3,63:3,...Object.fromEntries(Array.from({length:32},(_,i)=>[100+i,35]))};
+test('Health redraw is constant work and never uploads a sprite',()=>{
+  const l=new Logic(base);l.run(named.HUD.script);
+  assert.deepEqual(l.trace,['EVENT_TEXT_DRAW','EVENT_TEXT_DRAW','EVENT_TEXT_DRAW']);
+});
+test('Identity lookup selects two portraits with at most eighteen comparisons',()=>{
+  const identity=plan.customScripts.find(s=>s.name==='Kanto battle_identity');
+  for(const p of roster){const l=new Logic({...base,1:p.index,4:p.index});l.run(identity.script);
+    assert.equal(l.trace.filter(e=>e==='EVENT_ACTOR_SET_SPRITE').length,2);
+    assert.ok(l.trace.filter(e=>e==='EVENT_IF').length<=18);
+  }
+});
+test('Poison and seed use one sixteenth HP, clamp, and cannot drain a fainted foe',()=>{
+  const residual=plan.customScripts.find(s=>s.name==='Kanto end_turn_residual').script;
+  let l=new Logic({...base,303:1,6:160,5:40});l.run(residual);assert.equal(l.get(5),30);
+  l=new Logic({...base,303:1,6:15,5:1,28:1,3:10});l.run(residual);assert.equal(l.get(5),0);assert.equal(l.get(3),10);
+  l=new Logic({...base,6:160,5:2,28:1,3:10});l.run(residual);assert.equal(l.get(5),0);assert.equal(l.get(3),12);assert.equal(l.get(41),12);
+  l=new Logic({...base,303:1,28:1,3:0});l.run(residual);assert.equal(l.get(5),28);
+});
 test('New game begins at home without a starter, Pokedex, or free balls',()=>{const l=new Logic({},[1]);const end=l.run(scenes.Title.script);assert.equal(end.kind,'switch');assert.equal(end.args.sceneId,scenes.red_house.id);assert.equal(l.get(0),5);assert.equal(l.get(2),0);assert.equal(l.get(8),0);assert.equal(l.get(1),0);assert.equal(l.get(248),0);assert.equal(l.get(133),3000);});
 test('New game clears a prior collection and badge',()=>{const l=new Logic({12:1,30:1,31:1,32:1,10:3},[1]);l.run(scenes.Title.script);assert.equal(l.get(12),0);assert.equal(l.get(30),0);assert.equal(l.get(31),0);assert.equal(l.get(10),0);});
 test('Continue loads an existing journal without starting a new game',()=>{const l=new Logic({},[2]);l.saved={...base,12:1};assert.equal(l.run(scenes.Title.script).kind,'load');assert.equal(l.get(12),1);assert.equal(l.get(31),1);});
@@ -127,10 +145,10 @@ test('Lab exit requires a starter and the opening rival victory',()=>{const t=pl
 const fight=named.FIGHT.script;
 test('A 95-percent move hits at 95 and misses at 96 while spending PP and a turn',()=>{for(const roll of [95,96]){const l=new Logic(base,[1],[roll,16,255]);l.run(fight);assert.equal(l.get(104),34);assert.equal(l.get(18),1);assert.equal(l.get(5)<28,roll===95);assert.equal(l.get(3),36);}});
 test('A move spends only its own individual PP',()=>{const l=new Logic(base,[1],[16]);l.run(fight);assert.equal(l.get(104),34);assert.equal(l.get(105),35);assert.equal(l.get(18),1);});
-test('An empty move and Back spend no PP or turn',()=>{let l=new Logic({...base,105:0},[2]);l.run(fight);assert.equal(l.get(104),35);assert.equal(l.get(105),0);assert.equal(l.get(18),0);l=new Logic(base,[3]);l.run(fight);assert.equal(l.get(18),0);assert.equal(l.get(104),35);});
+test('An empty move and B cancel spend no PP or turn',()=>{let l=new Logic({...base,105:0},[2]);l.run(fight);assert.equal(l.get(104),35);assert.equal(l.get(105),0);assert.equal(l.get(18),0);l=new Logic(base,[0]);l.run(fight);assert.equal(l.get(18),0);assert.equal(l.get(104),35);});
 test('All PP empty enables Struggle with persistent recoil',()=>{const l=new Logic({...base,104:0,105:0,106:0,107:0},[],[16]);l.run(fight);assert.equal(l.get(5),28-referenceDamage(1,7,3,3,50,'NORMAL'));assert.equal(l.get(3),32);assert.equal(l.get(41),32);assert.equal(l.get(18),1);});
 test('Critical hit doubles damage before the random multiplier',()=>{const l=new Logic({...base,300:1,301:40},[],[1]);l.run(named.ATTACK.script);const hit=referenceDamage(1,7,3,3,40,'NORMAL',[],true);assert.equal(l.get(16),hit);assert.equal(l.get(5),28-hit);});
-test('Grass Leech Seed drains the foe and heals within maximum HP',()=>{const l=new Logic({...base,0:7,61:7,41:20},[1,3,4],[1,1,95,255]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(28),1);assert.equal(l.get(5),26);assert.equal(l.get(41),22-referenceDamage(7,1,3,7,35,'NORMAL'));assert.equal(l.get(106),34);});
+test('Grass Leech Seed drains after the foe acts and heals within maximum HP',()=>{const l=new Logic({...base,0:7,61:7,41:20},[1,3,4],[1,1,95,255]);assert.equal(l.run(scenes.battlefield.script).kind,'pop');assert.equal(l.get(28),1);assert.equal(l.get(5),27);assert.equal(l.get(41),21-referenceDamage(7,1,3,7,35,'NORMAL'));assert.equal(l.get(106),34);assert.ok(l.text.findIndex(t=>t.includes('THE FOE USED'))<l.text.findIndex(t=>t.includes('DRAINED THE FOE')));});
 test('Pikachu Thunder Wave and Pidgey Sand Attack set battle effects',()=>{let l=new Logic({...base,1:4,63:9},[3]);l.run(fight);assert.equal(l.get(69),1);l=new Logic({...base,1:8,67:5},[2]);l.run(fight);assert.equal(l.get(68),1);});
 test('PC preserves a valid lead even when the remaining party is fainted',()=>{const l=new Logic({...base,25:2,33:1,53:1,43:0},[2]);l.run(named['Bills PC'].script);assert.equal(l.get(1),4);assert.equal(l.get(25),1);assert.equal(l.get(3),0);});
 test('Individual experience levels only the battling Pokemon',()=>{const l=new Logic({...base,71:5,19:0});l.run(named.VICTORY.script);assert.equal(l.get(61),4);assert.equal(l.get(60),3);assert.equal(l.get(71),2);assert.equal(l.get(2),referenceHP(1,4));});

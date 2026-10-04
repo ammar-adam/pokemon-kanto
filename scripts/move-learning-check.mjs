@@ -114,6 +114,10 @@ function run(events, state, choice = 0) {
         state[a.vectorX] = signed16((state[a.vectorX] || 0) - a.value);
       } else if (event.command === 'EVENT_TEXT') observed.text.push(a.text);
       else if (event.command === 'EVENT_MENU') {
+        assert.equal(a.layout, 'dialogue');
+        assert.equal(a.cancel, true);
+        assert.ok(a.options.length <= 4);
+        for (const option of a.options) assert.ok(option.replace(/\$\d+\$/g, '40').length <= 16, 'move and PP fit one row');
         observed.menus.push(a.options);
         state[a.variable] = choice;
       } else if (event.command === 'TEST_MOVE_EXECUTION') observed.moves.push(a.move);
@@ -142,7 +146,10 @@ for (const [i, c] of roster.entries()) {
     run(restores[i], state);
     assert.deepEqual(readPP(state, i), ppAtLevel(c.dex, level));
     assert.ok(readPP(state, i).reduce((sum, n) => sum + n, 0) < 32768);
-    assert.deepEqual(run(menus[i], state).menus, [[...moves, 'BACK']]);
+    const expectedMenu = moves.map((move, slot) => `${move} $${pp(i, slot)}$`);
+    const menuResult = run(menus[i], state);
+    assert.deepEqual(menuResult.menus, [expectedMenu]);
+    assert.deepEqual(menuResult.text, [], 'opening move selection never blocks on a PP popup');
     const afterMenu = { ...state };
     assert.equal(run(selections[i], state).moves.length, 0, 'B cancel spends no turn');
     assert.deepEqual(state, afterMenu);
@@ -174,7 +181,7 @@ for (const [i, c] of roster.entries()) {
     const active = { ...state, 18: 0 };
     const fighting = run(fights[i], active, 1);
     assert.deepEqual(fighting.moves, [moves[0]]);
-    assert.deepEqual(fighting.menus, [[...moves, 'BACK']]);
+    assert.deepEqual(fighting.menus, [expectedMenu]);
     if (level > 1) {
       const beforeMoves = movesAtLevel(c.dex, level - 1);
       const previousPP = beforeMoves.map((move, slot) => Math.max(0, moveStats(move).pp - 5 - slot));

@@ -20,18 +20,18 @@ export function authorOpening(h){
    return [e];
  });title.events=visit(title.events);
  const init=title.events.find(e=>e.command==='EVENT_IF'&&e.args.condition?.valueB?.value===1);init.children.true.splice(1,0,set(133,3000));
- move('mom',13,11);change('mom',[say('MOM: PROFESSOR\nOAK WAS LOOKING\nFOR YOU TODAY.'),IF(1,'>',0,[say('TAKE A REST\nBEFORE YOU GO.'),...heal(),...loadHP(),say('THERE. EVERYONE\nIS FEELING BETTER.')],[say('BE CAREFUL NEAR\nTHE TALL GRASS.')])]);
+ move('mom',13,11);change('mom',[IF(1,'>',0,[say('MOM: SO THIS IS\nYOUR NEW PARTNER!\nCOME SIT WITH ME.'),...heal(),...loadHP(),say('YOU CAN ALWAYS\nCOME HOME, RED.\nI WILL BE HERE.')],[say('MOM: OAK ASKED\nFOR YOU AND BLUE\nTHIS MORNING.'),say('HIS LAB IS SOUTH\nOF HERE, BY THE\nWATER. GO SEE HIM.')])]);
  actor('red_house','bedroom pc','Home PC','logic',2,6,[IF(249,'==',0,[set(249,1),math(9,'add',1),say('WITHDREW A POTION\nFROM THE PC.')],[say('THE ITEM BOX\nIS EMPTY.')])]);
  move('prof',5,9);change('prof',[
-   IF(1,'==',0,[set(246,1),say('OAK: I STUDY\nPOKEMON. TODAY\nYOU CAN HELP ME.'),say('THREE POKEMON\nWAIT ON THE TABLE.\nCHOOSE A PARTNER.')],[
-     IF(247,'==',1,[set(247,2),set(248,1),say('OAK: MY PARCEL!\nTHANK YOU FOR\nBRINGING IT BACK.'),say('THIS POKEDEX\nRECORDS POKEMON\nYOU DISCOVER.'),say('VISIT THE MART\nFOR POKE BALLS.\nTHEN HEAD NORTH.')],[say('OAK: YOU AND\nYOUR PARTNER\nARE A GOOD TEAM.')]),...heal(),...loadHP()
+   IF(1,'==',0,[set(246,1),say('OAK: I ONCE\nDREAMED OF SEEING\nEVERY POKEMON.'),say('NOW I NEED TWO\nYOUNG TRAINERS\nTO GO WHERE I\nCANNOT. YOU AND\nBLUE.'),say('THREE POKEMON\nWAIT ON THE TABLE.\nCHOOSE A PARTNER.')],[
+     IF(247,'==',1,[set(247,2),set(248,1),say('OAK: MY PARCEL!\nYOU MADE IT THERE\nAND BACK TOGETHER.'),say('TAKE THIS\nPOKEDEX. EVERY\nDISCOVERY HELPS\nMY RESEARCH.'),say('BLUE IS ALREADY\nCHASING BADGES.\nFIND YOUR OWN\nREASON TO TRAVEL.'),say('BUY POKE BALLS\nAT THE MART. THEN\nCROSS VIRIDIAN\nFOREST TO PEWTER.')],[IF(248,'==',0,[say('OAK: TRY ROUTE 1\nWITH YOUR PARTNER.\nIT LEADS NORTH TO\nVIRIDIAN CITY.'),say('THE MART THERE\nIS HOLDING A\nPARCEL FOR ME.')],[say('OAK: EVERY NEW\nSPECIES TELLS US\nSOMETHING. WHAT\nHAVE YOU FOUND?')])]),...heal(),...loadHP()
    ])
  ]);
  for(const [starter,x]of [[2,8],[3,11],[1,14]]){
    const names={1:'CHARMANDER',2:'BULBASAUR',3:'SQUIRTLE'};
    actor('laboratory','starter ball '+starter,names[starter]+' Ball','logic',x,7,[IF(1,'==',0,[IF(246,'==',1,[say(names[starter]+' IS INSIDE\nTHIS POKE BALL.'),menu(13,['CHOOSE','LOOK AGAIN']),IF(13,'==',1,[set(1,starter),set(27,starter),set(29+starter,1),set(49+starter,1),set(59+starter,5),set(0,5),...maxHPEvents(starter,0,2),set(3,V(2)),set(39+starter,V(2)),...restorePP(starter-1),set(10,1),set(25,1),sfx(7),say(names[starter]+'\nIS YOUR FIRST\nPARTNER!')])],[say('TALK TO OAK\nBEFORE CHOOSING.')])],[say('THE REMAINING\nPOKEMON STAYS\nWITH PROFESSOR OAK.')])]);
  }
- const rival=[say('BLUE: HOLD ON!\nLET US SEE WHO\nPICKED BETTER.'),set(19,2),set(20,1),...startBattle()];
+ const rival=[say('BLUE: WAIT, RED!\nWE ARE TRAINERS\nNOW. PROVE YOU\nCAN HANDLE IT.'),say('OAK: WATCH BOTH\nPOKEMONS HEALTH.\nA POTION CAN KEEP\nYOUR PARTNER IN\nTHE FIGHT.'),set(19,2),set(20,1),...startBattle()];
  actor('laboratory','opening blue','Blue','blue',7,12,[IF(26,'==',0,[IF(1,'==',0,[say('BLUE: GO AHEAD.\nPICK YOUR\nPOKEMON FIRST.')],rival)],[say('BLUE: I AM\nHEADING FOR THE\nPOKEMON LEAGUE.')])]);
  change('leave lab',[IF(1,'==',0,[say('CHOOSE YOUR\nFIRST POKEMON.'),position(9,15)],[IF(26,'==',0,rival,[switchScene('fernvale',23,23)])])],'trigger');
  doorway('enter lab',23,22,[switchScene('laboratory',9,15,'up')]);
@@ -58,7 +58,7 @@ export function authorOpening(h){
  change('viridian nurse',[say('THE POKEMON\nCENTER IS THE\nBUILDING TO THE\nWEST.')]);move('viridian nurse',19,22,'Center Visitor');
  change('viridian pc',[say('THE GYM LEADER\nIS AWAY. THE\nMART IS OPEN.')]);move('viridian pc',18,16,'Viridian Resident');
  change('viridian mart',[say('THE SHOP IS\nINSIDE THE\nBUILDING ABOVE.')]);move('viridian mart',25,23,'Shop Customer');
- change('north forest',[IF(248,'==',1,[switchScene('forest',15,29)],[say('AN ELDER RESTS\nON THE PATH.\nVISIT THE MART\nWHILE YOU WAIT.')])],'trigger');
+ change('north forest',[IF(248,'==',1,[switchScene('forest',15,29)],[IF(247,'==',1,[say('YOU STILL HAVE\nOAKS PARCEL.\nPALLET TOWN IS\nSOUTH OF HERE.')],[say('THE PATH IS\nBLOCKED FOR NOW.\nTHE MART CLERK\nIS CALLING YOU\nFROM THE EAST.')])])],'trigger');
  // Ten-slot Red encounter tables; cumulative percentages preserve rare Pikachu.
  for(const area of Object.keys(openingEncounters)){
    const records=openingEncounters[area];let threshold=0;

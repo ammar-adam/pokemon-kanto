@@ -81,7 +81,6 @@ export function moveLearningAuthoring({
   moveStats = originalMoveStats, onMove, onStruggle,
 }) {
   const emitted = new Set();
-  const menuNames = new Map();
   const key = move => move.toLowerCase().replace(/[^a-z]/g, '');
   const once = (name, events) => {
     const body = emitted.has(name) ? [] : events();
@@ -144,12 +143,9 @@ export function moveLearningAuthoring({
   }
 
   function menuTier(index, tier) {
-    const signature = tier.moves.join('|');
-    if (!menuNames.has(signature)) menuNames.set(signature, 'learned_menu_' + menuNames.size);
-    const variables = tier.moves.map((_, slot) => `$${pp(index, slot)}$`);
-    const lines = [variables.slice(0, 2).join('/'), variables.slice(2).join('/')].filter(Boolean);
-    return [say('PP ' + lines.join('\n')), set(14, 0),
-      ...once(menuNames.get(signature), () => [makeMenu(14, [...tier.moves, 'BACK'], true, 'menu')])];
+    // Four full-width rows avoid the narrow menu and a separate blocking PP page.
+    const options = tier.moves.map((move, slot) => `${move} $${pp(index, slot)}$`);
+    return [set(14, 0), makeMenu(14, options, true, 'dialogue')];
   }
 
   const menu = index => atLevel(index, tier => menuTier(index, tier));
