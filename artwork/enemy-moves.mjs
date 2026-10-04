@@ -1,4 +1,5 @@
 import {moveStats} from './battle-damage.mjs';
+import {indexedDispatch} from './indexed-dispatch.mjs';
 
 const moveKey = move => (typeof move === 'string' ? move : move.key || move.name)
   .toLowerCase().replace(/[^a-z]/g, '').replace('highjumpkick', 'hijumpkick');
@@ -133,10 +134,10 @@ export function enemyMoveAuthoring({species, getMoves, moveTiers, IF, EX, V, set
     ]);
   }
   function select() {
-    return [set(14, struggleId), ...chunked('enemy_move_select', species.map((pokemon, i) =>
-      IF(4, '==', i + 1, tiers[i].flatMap(tier => [
+    return [set(14, struggleId), ...indexedDispatch('enemy_move_select',4,species.map((pokemon, i) =>
+      ({value:i+1,events:tiers[i].flatMap(tier => [
         EX(`$7$ >= ${tier.minLevel} && $7$ <= ${tier.maxLevel}`, pool(tier.moves))
-      ]))))];
+      ])})),{IF,shared})];
   }
   const failed = () => [say('BUT IT FAILED!')];
   function status(move) {
@@ -197,19 +198,19 @@ export function enemyMoveAuthoring({species, getMoves, moveTiers, IF, EX, V, set
     return hit(move);
   }
   function resolve() {
-    return chunked('enemy_move_resolve', [...catalog.values()].map(move => {
+    return indexedDispatch('enemy_move_resolve',14,[...catalog.values()].map(move => {
       const body = action(move);
       const accurate = move.effect === 'SWIFT_EFFECT' || move.accuracy >= 100 ? body : [
         rand(15, 1, 100), IF(15, '<=', move.accuracy, body, [say('THE FOE MISSED!')])
       ];
-      return IF(14, '==', move.id, shared('enemy_move_' + move.key, [
+      return {value:move.id,events:shared('enemy_move_' + move.key, [
         set(16, 0), set(300, typeCode(move.type)), set(301, move.power),
         say(`THE FOE USED\n${move.name}!`),
         ...(move.effect === 'SWIFT_EFFECT' ? accurate : [set(135, 1), IF(68, '==', 1, [
           rand(15, 1, 100), IF(15, '<=', 30, [set(135, 0)])
         ]), IF(135, '==', 1, accurate, [say('THE FOE MISSED!')])])
-      ]));
-    }));
+      ])};
+    }),{IF,shared});
   }
   function counter() {
     const turn = [...select(), ...resolve()];

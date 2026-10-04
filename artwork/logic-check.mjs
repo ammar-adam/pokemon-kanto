@@ -67,6 +67,22 @@ test('Health redraw is constant work and never uploads a sprite',()=>{
   const l=new Logic(base);l.run(named.HUD.script);
   assert.deepEqual(l.trace,['EVENT_TEXT_DRAW','EVENT_TEXT_DRAW','EVENT_TEXT_DRAW']);
 });
+
+test('An attack resolves roster lookups with fewer than 200 comparisons',()=>{
+  let worst=0;
+  for(const p of roster){const l=new Logic({...base,1:p.index,4:p.index,300:1,301:40},[],[16,255]);l.run(named.ATTACK.script);
+    const count=l.trace.filter(command=>command==='EVENT_IF').length;worst=Math.max(worst,count);
+    assert.ok(count<200,p.name+' attack comparisons: '+count);
+  }
+  console.log('INFO Worst attack lookup/control comparisons: '+worst);
+});
+
+test('Blue forest and Route Twenty Two use the correct version-exclusive weighting',()=>{
+  const weight=(area,dex)=>openingEncounters[area].filter(row=>row[0]===dex).reduce((sum,row)=>sum+row[2],0);
+  assert.equal(weight('forest',10),45);assert.equal(weight('forest',11),40);
+  assert.equal(weight('forest',13),5);assert.equal(weight('forest',14),5);assert.equal(weight('forest',25),5);
+  assert.equal(weight('route_twenty_two',29),40);assert.equal(weight('route_twenty_two',32),5);
+});
 test('Identity lookup selects two portraits with at most eighteen comparisons',()=>{
   const identity=plan.customScripts.find(s=>s.name==='Kanto battle_identity');
   for(const p of roster){const l=new Logic({...base,1:p.index,4:p.index});l.run(identity.script);
@@ -117,6 +133,19 @@ test('Every species selects and announces a real level-appropriate opponent move
     assert.ok(!text.includes('THE FOE ATTACKS!'));
   }
 });
+test('Opponent move selection and resolution avoid whole-roster scans',()=>{
+  let worst=0;
+  for(const p of roster)for(const level of [1,50,100]){
+    const moves=movesAtLevel(p.dex,level);
+    for(let slot=1;slot<=Math.max(1,moves.length);slot++){
+      const l=new Logic({...base,1:dexId(41),4:p.index,0:level,7:level,3:30000,5:30000,6:30000},[],moves.length>1?[slot]:[]);
+      l.run(named.COUNTER.script);
+      const count=l.trace.filter(command=>command==='EVENT_IF').length;worst=Math.max(worst,count);
+      assert.ok(count<250,`${p.name} L${level} move ${slot}: ${count} comparisons`);
+    }
+  }
+  console.log('INFO Worst opponent turn lookup/control comparisons: '+worst);
+});
 test('Heavy resistance still takes one damage while immunities remain zero',()=>{const l=new Logic({...base,0:1,7:100,4:dexId(31),300:8,301:15},[],[16,217]);l.run(named.ATTACK.script);assert.equal(l.get(16),1);});
 test('Low-HP catch is guaranteed and adds a species once',()=>{let l=new Logic({...base,4:4,5:9},[1],[100]);assert.equal(l.run(named.BAG.script).kind,'pop');assert.equal(l.get(33),1);assert.equal(l.get(43),9);assert.equal(l.get(10),2);assert.equal(l.get(8),5);l=new Logic({...base,4:4,5:9,33:1,10:2},[1],[100]);l.run(named.BAG.script);assert.equal(l.get(10),2);});
 test('Full-HP catch boundary succeeds at 35 and fails at 36',()=>{for(const roll of [35,36]){const l=new Logic({...base,4:4},[1],[roll]);const end=l.run(named.BAG.script);assert.equal(end?.kind==='pop',roll===35);assert.equal(l.get(18),1);assert.equal(l.get(8),5);}});
@@ -161,7 +190,7 @@ test('PC preserves a valid lead even when the remaining party is fainted',()=>{c
 test('Individual experience levels only the battling Pokemon',()=>{const l=new Logic({...base,71:5,19:0});l.run(named.VICTORY.script);assert.equal(l.get(61),4);assert.equal(l.get(60),3);assert.equal(l.get(71),2);assert.equal(l.get(2),referenceHP(1,4));});
 test('Every transition lands on clear two-tile player footing',()=>{for(const r of resources){for(const key of ['script','startScript']){function check(events){for(const e of events||[]){if(e.command==='EVENT_SWITCH_SCENE'){const s=byId[e.args.sceneId],x=e.args.x.value,y=e.args.y.value;const bytes=decodeResourceBytes(s.collisions,{maximumValues:s.width*s.height});assert.equal(bytes[y*s.width+x],0,`landing ${s.name} ${x},${y}`);assert.equal(bytes[y*s.width+x+1],0,`landing right ${s.name} ${x},${y}`);}for(const child of Object.values(e.children||{}))check(child);}}check(r[key]);}}});
 test('Home is reachable from the relocated laboratory exit',()=>{const s=scenes.fernvale,b=decodeResourceBytes(s.collisions,{maximumValues:s.width*s.height}),queue=[[23,23]],seen=new Set();let reachable=false;while(queue.length){const [x,y]=queue.shift(),k=`${x},${y}`;if(seen.has(k)||x<1||y<1||x+1>=s.width||y>=s.height||b[y*s.width+x]||b[y*s.width+x+1])continue;seen.add(k);if(x===7&&y===11)reachable=true;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]])queue.push([x+dx,y+dy]);}assert.ok(reachable);});
-test('Opening encounters use every weighted Red slot and its level',()=>{
+test('Opening encounters use every weighted Blue slot and its level',()=>{
   for(const [area,slots]of Object.entries(openingEncounters)){
     const t=plan.triggers.find(t=>t.sceneId===scenes[area].id&&(t.name.startsWith('wild ')||t.name.startsWith('grass ')));assert.ok(t,area);let start=0;
     for(const [dex,level,weight]of slots){for(const roll of [start+1,start+weight]){const l=new Logic(base,[],[1,roll]);assert.equal(l.run(byId[t.id].script).kind,'switch');assert.equal(l.get(4),dexId(dex));assert.equal(l.get(7),level);}start+=weight;}assert.equal(start,100);

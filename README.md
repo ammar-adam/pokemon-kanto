@@ -1,5 +1,24 @@
 # Pokemon Kanto: Opening Remake Preview
 
+## Unreleased Battle And Blue Accuracy Pass
+
+Attack/defense, type, HP, and opponent-move lookups now select a small indexed
+branch instead of scanning the entire roster. The authored attack regression
+checks every species and permits fewer than 200 comparisons; the measured
+worst case is 151. Opponent turns stay below 250 in the species, level, and
+move-slot test matrix, with a measured worst case of 202. These are source-work
+bounds, not hardware frame-rate claims.
+
+Viridian Forest and Route 22 now use Blue's version-specific encounter slots:
+Caterpie and Metapod dominate the forest, Pikachu remains rare, and Nidoran
+female is the common Nidoran on Route 22. Other early shared tables are retained.
+The cartridge still needs live playtesting before another release or install.
+
+The approved public emulator currently times out during opening, including
+with zero initial frames. The official browser export rejects its Windows
+temporary directory before compilation. Both emulator attempts were closed;
+no hardware was written. These are preview blockers, not missing user consent.
+
 ## v0.4.0-alpha.5
 
 This presentation pass adds five original chiptune tracks, authentic-design
@@ -93,7 +112,8 @@ Start at home, meet Oak, choose one of three starter balls, battle Blue, collect
 Oak's parcel at Viridian Mart, and return it to unlock the Pokedex and northern
 path. Viridian now has separate Mart and Pokemon Center interiors. Purchases
 cost money; healing no longer restocks items. Route One and Viridian Forest use
-Red's ten weighted species/level slots, including rare wild Pikachu.
+ten weighted species/level slots, including rare wild Pikachu. The unreleased
+pass above corrects the forest's version-exclusive slots from Red to Blue.
 
 Six opening backgrounds have new color artwork. These are custom layouts, not
 exact original maps; the house is still one room. Encounter frequency, battle

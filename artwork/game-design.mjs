@@ -13,6 +13,7 @@ import { playerMoveEffects } from './player-move-effects.mjs';
 import { enemyMoveAuthoring, enemyBattleStateAuthoring } from './enemy-moves.mjs';
 import { musicId,sceneScore } from './music-score.mjs';
 import { adventureMenu } from './adventure-menu.mjs';
+import { indexedDispatch } from './indexed-dispatch.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ids = JSON.parse(await readFile(path.join(root,'artwork/pokemon-resource-ids.json'),'utf8'));
@@ -102,8 +103,8 @@ const restorePP = i => learning.restorePP(i);
 const {maxHPEvents,clampHPEvents,resizeHPEvents}=hpAuthoring({species,IF,EX,V,set,math,chunked});
 const heal = () => chunked('heal',species.map((_,i)=>EX(`$${own(i)}$ == 1 && $${retired(i)}$ == 0`,[...maxHPEvents(i+1,lv(i),hp(i)),...restorePP(i)])),32);
 const loadPokemonHP = i => [set(0,V(lv(i))),...maxHPEvents(i+1,0,2),...clampHPEvents(hp(i),2),set(3,V(hp(i)))];
-const loadHP = () => chunked('load_hp',species.map((_,i)=>IF(1,'==',i+1,loadPokemonHP(i))));
-const storeHP = () => chunked('store_hp',species.map((_,i)=>IF(1,'==',i+1,[set(hp(i),V(3))])));
+const loadHP = () => indexedDispatch('load_hp',1,species.map((_,i)=>({value:i+1,events:loadPokemonHP(i)})),{IF,shared});
+const storeHP = () => indexedDispatch('store_hp',1,species.map((_,i)=>({value:i+1,events:[set(hp(i),V(3))]})),{IF,shared});
 const living = () => [...stages.clearPlayer(),set(1,0),...chunked('living',species.map((_,i)=>EX(`$1$ == 0 && $${member(i)}$ == 1 && $${hp(i)}$ > 0`,[set(1,i+1)]))),...loadHP()];
 const firstParty = () => [set(1,0),...chunked('first_party',species.map((_,i)=>EX(`$1$ == 0 && $${member(i)}$ == 1`,[set(1,i+1)]))),...loadHP()];
 const pop = () => [set(21,1),E('EVENT_SCENE_POP_STATE',{fadeSpeed:2})];
@@ -183,7 +184,8 @@ const typeChart={
   ROCK:[['FIRE','ICE','FLYING','BUG'],['FIGHTING','GROUND'],[]],GHOST:[['GHOST'],[],['NORMAL','PSYCHIC']],DRAGON:[['DRAGON'],[],[]]
 };
 function effectiveness(attacker,defender,message=false){return [
-  ...chunked('types_'+attacker,species.flatMap((c,i)=>[IF(attacker,'==',i+1,[set(308,typeCode(c.types[0]))]),IF(defender,'==',i+1,[set(309,typeCode(c.types[0])),set(310,typeCode(c.types[1]))])])),
+  ...indexedDispatch('attacker_types_'+attacker,attacker,species.map((c,i)=>({value:i+1,events:[set(308,typeCode(c.types[0]))]})),{IF,shared}),
+  ...indexedDispatch('defender_types_'+defender,defender,species.map((c,i)=>({value:i+1,events:[set(309,typeCode(c.types[0])),set(310,typeCode(c.types[1]))]})),{IF,shared}),
   IF(300,'>',0,[set(308,V(300))]),
   ...chunked('chart',Object.entries(typeChart).map(([type,groups])=>IF(308,'==',typeCode(type),groups.flatMap((group,g)=>group.flatMap(target=>[309,310].map(variable=>IF(variable,'==',typeCode(target),g===2?[set(16,0)]:g===0?[math(16,'mul',2)]:[IF(16,'>',0,[math(16,'div',2),IF(16,'==',0,[set(16,1)])])]))))))),
   ...(message?[IF(16,'==',0,[say('IT HAS NO EFFECT!')])]:[])

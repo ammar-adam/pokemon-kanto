@@ -33,3 +33,10 @@ supersedes modern PokeAPI values for HP, Attack, Defense, and combined Special.
 `red-learnsets.json` records initial moves and level-up facts for all 151
 species from the same revision. `fetch-red-learnsets.mjs --check` verifies
 the snapshot against its pinned upstream records.
+
+The Blue-specific encounter slots in `opening-story.mjs` follow the same pinned
+revision's [Viridian Forest table](https://github.com/pret/pokered/blob/d2704a63c26f9ba046ade877445216b3de0519a4/data/wild/maps/ViridianForest.asm)
+and [Route 22 table](https://github.com/pret/pokered/blob/d2704a63c26f9ba046ade877445216b3de0519a4/data/wild/maps/Route22.asm).
+The `BLUE` branches determine species and levels; the ten slot weights are
+20, 20, 15, 10, 10, 10, 5, 5, 4, and 1 percent. These encounter facts do not
+make the custom maps, battle engine, or story an exact recreation.

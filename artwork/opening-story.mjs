@@ -1,8 +1,8 @@
 import {dexId} from './campaign-world.mjs';
 export const openingEncounters={
  route_one:[[16,3,20],[19,3,20],[19,3,15],[19,2,10],[16,2,10],[16,3,10],[16,3,5],[19,4,5],[16,4,4],[16,5,1]],
- forest:[[13,4,20],[14,5,20],[13,3,15],[13,5,10],[14,4,10],[14,6,10],[11,4,5],[10,3,5],[25,3,4],[25,5,1]],
- route_twenty_two:[[19,3,20],[32,3,20],[19,4,15],[32,4,10],[19,2,10],[32,2,10],[21,3,5],[21,5,5],[29,3,4],[29,4,1]],
+ forest:[[10,4,20],[11,5,20],[10,3,15],[10,5,10],[11,4,10],[11,6,10],[14,4,5],[13,3,5],[25,3,4],[25,5,1]],
+ route_twenty_two:[[19,3,20],[29,3,20],[19,4,15],[29,4,10],[19,2,10],[29,2,10],[21,3,5],[21,5,5],[32,3,4],[32,4,1]],
  route_three:[[16,6,20],[21,5,20],[16,7,15],[21,6,10],[21,7,10],[16,8,10],[21,8,5],[39,3,5],[39,5,4],[39,7,1]],
  mt_moon:[[41,8,20],[41,7,20],[41,9,15],[74,8,10],[41,6,10],[41,10,10],[74,10,5],[46,8,5],[41,11,4],[35,8,1]]
 };
@@ -50,7 +50,7 @@ export function authorOpening(h){
  change('viridian pc',[say('THE GYM LEADER\nIS AWAY. THE\nMART IS OPEN.')]);move('viridian pc',18,16,'Viridian Resident');
  change('viridian mart',[say('THE SHOP IS\nINSIDE THE\nBUILDING ABOVE.')]);move('viridian mart',25,23,'Shop Customer');
  change('north forest',[IF(248,'==',1,[switchScene('forest',15,29)],[IF(247,'==',1,[say('YOU STILL HAVE\nOAKS PARCEL.\nPALLET TOWN IS\nSOUTH OF HERE.')],[say('THE PATH IS\nBLOCKED FOR NOW.\nTHE MART CLERK\nIS CALLING YOU\nFROM THE EAST.')])])],'trigger');
- // Ten-slot Red encounter tables; cumulative percentages preserve rare Pikachu.
+ // Ten-slot Blue encounter tables; cumulative percentages preserve rare Pikachu.
  for(const area of Object.keys(openingEncounters)){
    const records=openingEncounters[area];let threshold=0;
    const choose=records.map(([dex,level,weight],i)=>{const low=threshold;threshold+=weight;return EX(`$135$ > ${low} && $135$ <= ${threshold}`,[set(4,dexId(dex)),set(7,level)]);});
