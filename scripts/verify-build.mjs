@@ -59,7 +59,7 @@ const receipt = {
   memory: { variableCount:variableOffsets.length, variableCapacity, dataEnd, reservedStackStart:symbols['.STACK'], gapBytes:symbols['.STACK']-dataEnd, runtimeStackVerified:false },
   sourceChecks: 'npm test passed locally; GitHub Actions checks source only',
   romExecuted: false,
-  runtimeLimit: 'Approved public emulator open requests timed out even with zero initial frames; both attempts were closed. Official browser export rejects its Windows temporary directory. Gameplay timing, audio output, saves, and this revision on hardware remain unverified.'
+  runtimeLimit: 'Approved public emulator open requests timed out, including the prior zero-frame attempt and the current rebuilt ROM. All test sessions were closed. Official browser export rejects its Windows temporary directory. Gameplay timing, audio output, saves, and this revision on hardware remain unverified.'
 };
 await writeFile(path.join(root, 'verification/current-release.json'), JSON.stringify(receipt, null, 2) + '\n');
 console.log(JSON.stringify({ sha256, sizeBytes: rom.length, projectRevision: receipt.projectRevision }));

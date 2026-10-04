@@ -12,12 +12,15 @@ bounds, not hardware frame-rate claims.
 Viridian Forest and Route 22 now use Blue's version-specific encounter slots:
 Caterpie and Metapod dominate the forest, Pikachu remains rare, and Nidoran
 female is the common Nidoran on Route 22. Other early shared tables are retained.
-The cartridge still needs live playtesting before another release or install.
+The native 4 MiB ROM builds successfully, with its linked music and three
+non-overlapping save regions verified. The cartridge still needs live
+playtesting before another release or install.
 
 The approved public emulator currently times out during opening, including
 with zero initial frames. The official browser export rejects its Windows
-temporary directory before compilation. Both emulator attempts were closed;
-no hardware was written. These are preview blockers, not missing user consent.
+temporary directory before compilation. The rebuilt ROM encountered the same
+startup timeout. All test sessions were closed; no hardware was written.
+These are preview blockers, not missing user consent.
 
 ## v0.4.0-alpha.5
 
