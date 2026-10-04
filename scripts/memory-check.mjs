@@ -28,6 +28,10 @@ function checkEvents(events,owner){for(const e of events){
     const target=scripts.get(e.args.customEventId);assert.ok(target,'shared script target exists');
     for(const id of Object.keys(target.actors))assert.equal(e.args[`$actor[${id}]$`],id,'scene actor is forwarded');
     for(const id of Object.keys(target.variables))assert.ok(e.args[`$variable[${id}]$`],'shared variable argument exists');
+    for(const key of Object.keys(e.args)){
+      const binding=key.match(/^\$(actor|variable)\[(.*)\]\$$/);
+      if(binding)assert.ok((binding[1]==='actor'?target.actors:target.variables)[binding[2]],'no stale shared binding '+key);
+    }
   }
   for(const list of Object.values(e.children||{}))checkEvents(list,owner);
 }}
