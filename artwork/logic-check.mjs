@@ -45,7 +45,7 @@ class Logic {
     case 'EVENT_IF_VALUE':{const x=this.get(a.variable),y=a.comparator;const yes=({'==':x===y,'!=':x!==y,'<':x<y,'>':x>y,'<=':x<=y,'>=':x>=y})[a.operator];this.body(e.children[yes?'true':'false']||[]);break;}
     case 'EVENT_IF_EXPRESSION':this.body(e.children[this.expression(a.expression)?'true':'false']||[]);break;
     case 'EVENT_IF':this.body(e.children[this.val(a.condition)?'true':'false']||[]);break;
-    case 'EVENT_MENU':{assert.ok(this.choices.length,'expected a supplied menu choice');const choice=this.choices.shift();assert.ok(choice>=0 && choice<=a.items);this.v[a.variable]=choice;break;}
+    case 'EVENT_KANTO_MENU':case 'EVENT_MENU':{assert.ok(this.choices.length,'expected a supplied menu choice');const choice=this.choices.shift();assert.ok(choice>=0 && choice<=a.items);this.v[a.variable]=choice;break;}
     case 'EVENT_ACTOR_INVOKE':this.body(byId[a.actorId].script);break;
     case 'EVENT_CALL_CUSTOM_EVENT':assert.ok(byId[a.customEventId],'shared script exists');this.body(byId[a.customEventId].script);break;
     case 'EVENT_GOTO_LABEL':throw new Halt('goto',a.label);
@@ -58,7 +58,7 @@ class Logic {
     case 'EVENT_TEXT_SET_ANIMATION_SPEED':this.textSpeed=a.speed;break;
     case 'EVENT_GBVM_SCRIPT':assert.equal(a.script,'','reference-only compile event');break;
     case 'EVENT_SET_INPUT_SCRIPT':case 'EVENT_MUSIC_PLAY':break;
-    default:assert.ok(['EVENT_TEXT','EVENT_TEXT_DRAW','EVENT_DEFINE_LABEL','EVENT_ACTOR_SET_SPRITE','EVENT_ACTOR_SET_STATE','EVENT_ACTOR_EFFECTS','EVENT_ACTOR_HIDE','EVENT_ACTOR_SHOW','EVENT_ACTOR_SET_POSITION','EVENT_SOUND_PLAY_EFFECT','EVENT_SCRIPT_LOCK','EVENT_SCRIPT_UNLOCK','EVENT_REMOVE_INPUT_SCRIPT','EVENT_SCENE_PUSH_STATE','EVENT_SCENE_RESET_STATE'].includes(e.command),'known native event '+e.command);
+    default:assert.ok(['EVENT_TEXT','EVENT_TEXT_DRAW','EVENT_DEFINE_LABEL','EVENT_ACTOR_SET_SPRITE','EVENT_ACTOR_SET_STATE','EVENT_ACTOR_EFFECTS','EVENT_ACTOR_HIDE','EVENT_ACTOR_DEACTIVATE','EVENT_ACTOR_SHOW','EVENT_ACTOR_SET_POSITION','EVENT_SOUND_PLAY_EFFECT','EVENT_SCRIPT_LOCK','EVENT_SCRIPT_UNLOCK','EVENT_REMOVE_INPUT_SCRIPT','EVENT_SCENE_PUSH_STATE','EVENT_SCENE_RESET_STATE'].includes(e.command),'known native event '+e.command);
   }}
   run(events){try{this.body(events);return null;}catch(e){if(e instanceof Halt)return e;throw e;}}
 }
@@ -379,7 +379,7 @@ test('Double KO clears defensive effects before the next trainer opponent',()=>{
   },[1,2,1,4],[2,2,16,255]); // Light Screen, then Explosion against Brock's Geodude.
   const originalEvent=l.event.bind(l);
   l.event=e=>{
-    if(e.command==='EVENT_MENU'&&!l.choices.length)throw new Halt('menu',e.args);
+    if((e.command==='EVENT_MENU'||e.command==='EVENT_KANTO_MENU')&&!l.choices.length)throw new Halt('menu',e.args);
     originalEvent(e);
   };
   assert.equal(l.run(events.slice(start)).kind,'menu');

@@ -1,0 +1,83 @@
+--- chromatic-cloud/menu-fix-staging/pokemon-kanto/plugins/kanto-menu/upstream/eventMenu.js	2026-10-05 12:02:30.938045456 -0400
++++ chromatic-cloud/menu-fix-staging/pokemon-kanto/plugins/kanto-menu/events/eventKantoMenu.js	2026-10-05 12:02:30.937622442 -0400
+@@ -1,6 +1,6 @@
+ const l10n = require("../helpers/l10n").default;
+ 
+-const id = "EVENT_MENU";
++const id = "EVENT_KANTO_MENU";
+ const groups = ["EVENT_GROUP_DIALOGUE"];
+ 
+ const autoLabel = (fetchArg) => {
+@@ -147,23 +147,55 @@
+ );
+ 
+ const compile = (input, helpers) => {
+-  const { textMenu } = helpers;
+-  textMenu(
+-    input.variable,
+-    [
+-      input.option1,
+-      input.option2,
+-      input.option3,
+-      input.option4,
+-      input.option5,
+-      input.option6,
+-      input.option7,
+-      input.option8,
+-    ].splice(0, input.items),
+-    input.layout,
+-    input.cancelOnLastOption,
+-    input.cancelOnB,
+-  );
++  const options = [
++    input.option1, input.option2, input.option3, input.option4,
++    input.option5, input.option6, input.option7, input.option8,
++  ].splice(0, input.items);
++
++  // Keep the native dialogue layout, including its two-column navigation.
++  if (input.layout !== "menu") {
++    helpers.textMenu(input.variable, options, input.layout,
++      input.cancelOnLastOption, input.cancelOnB);
++    return;
++  }
++
++  // GB Studio 4.3.2 single-column menu sequence, with only width/x changed.
++  // Full-width windows use the engine's existing scanline sprite occlusion.
++  const variableAlias = helpers.getVariableAlias(input.variable);
++  const optionsText = options.map((option, index) =>
++    "\\002\\001" + (option || `Item ${index + 1}`));
++  const menuText = "\\001\\001\\003\\003\\002" + optionsText.join("\n");
++  const height = options.length;
++  const x = 0;
++  const choiceFlags = [];
++  if (input.cancelOnLastOption) choiceFlags.push(".UI_MENU_LAST_0");
++  if (input.cancelOnB) choiceFlags.push(".UI_MENU_CANCEL_B");
++
++  helpers._addComment("Text Menu");
++  let dest = variableAlias;
++  if (helpers._isIndirectVariable(input.variable)) {
++    dest = helpers._declareLocal("menu_result", 1, true);
++  }
++  helpers._overlayClear(0, 0, 20, height + 2, ".UI_COLOR_WHITE", true, true);
++  helpers._overlayMoveTo(x, 18, ".OVERLAY_SPEED_INSTANT");
++  helpers._overlayMoveTo(x, 18 - height - 2, ".OVERLAY_IN_SPEED");
++  helpers._setTextLayer(".TEXT_LAYER_WIN");
++  helpers._loadAndDisplayText(menuText);
++  helpers._overlayWait(true, [".UI_WAIT_WINDOW", ".UI_WAIT_TEXT"]);
++  helpers._choice(dest, choiceFlags, options.length);
++  const clampedMenuIndex = index =>
++    index < 0 || index > options.length - 1 ? 0 : index + 1;
++  for (let i = 0; i < options.length; i++) {
++    helpers._menuItem(1, 1 + i, 1, options.length,
++      clampedMenuIndex(i - 1), clampedMenuIndex(i + 1));
++  }
++  helpers._overlayMoveTo(x, 18, ".OVERLAY_OUT_SPEED");
++  helpers._overlayWait(true, [".UI_WAIT_WINDOW", ".UI_WAIT_TEXT"]);
++  helpers._overlayMoveTo(0, 18, ".OVERLAY_SPEED_INSTANT");
++  if (helpers._isIndirectVariable(input.variable)) {
++    helpers._setInd(variableAlias, dest);
++  }
++  helpers._addNL();
+ };
+ 
+ module.exports = {

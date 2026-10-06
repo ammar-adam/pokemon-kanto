@@ -1,0 +1,43 @@
+--- upstream/engine-4.3.0-e1-ui.c
++++ engine/src/core/ui.c
+@@ -19,6 +19,13 @@
+ #include "shadow.h"
+ #include "music_manager.h"
+ 
++// Kanto: keep persistent battle HUD glyphs outside the temporary UI ring.
++#include "data_manager.h"
++#include "data/scene_battlefield.h"
++#include "data/font_bench_mono_caps.h"
++#define KANTO_HUD_TILE_BASE 0x20u
++#define KANTO_HUD_GLYPH_COUNT 69u
++
+ #define ui_frame_tl_tiles 0xC0u
+ #define ui_frame_bl_tiles 0xC6u
+ #define ui_frame_tr_tiles 0xC2u
+@@ -267,6 +274,26 @@
+         return FALSE;
+     } else {
+         if (vwf_current_offset) ui_next_tile();
++        // Kanto battlefield uses tiles 0x00-0x1B. The fixed HUD font uses
++        // 69 unique glyphs, pinned to 0x20-0x64 in background VRAM bank 0.
++        // Leave the overlay's circular cursor untouched, including its bank.
++        if ((text_render_base_addr == GetBkgAddr()) &&
++            (current_scene.bank == BANK(scene_battlefield)) &&
++            (current_scene.ptr == &scene_battlefield) &&
++            (vwf_current_font_idx == 0u) &&
++            (vwf_current_font_bank == BANK(font_bench_mono_caps)) &&
++            (vwf_current_font_desc.attr == FONT_RECODE) &&
++            (vwf_current_font_desc.mask == 0xFFu) &&
++            (letter < KANTO_HUD_GLYPH_COUNT)) {
++#ifdef CGB
++            VBK_REG = VBK_BANK_0;
++#endif
++            SetBankedBkgData(KANTO_HUD_TILE_BASE + letter, 1, bitmap, vwf_current_font_bank);
++            ui_prev_tile = KANTO_HUD_TILE_BASE + letter;
++            ui_prev_tile_bank = 0;
++            vwf_current_offset = 0u;
++            return TRUE;
++        }
+         ui_load_tile(bitmap, vwf_current_font_bank);
+         ui_next_tile();
+         vwf_current_offset = 0u;

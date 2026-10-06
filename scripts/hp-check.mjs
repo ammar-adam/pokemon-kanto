@@ -90,7 +90,7 @@ class Logic{
         assert.ok(actors.has(a.actorId));
         this.body(plan.scripts.find(s=>s.target.actorId===a.actorId).events);break;
       }
-      case 'EVENT_MENU':assert.ok(this.choices.length,'menu choice supplied');this.put(a.variable,this.choices.shift());break;
+      case 'EVENT_KANTO_MENU':case 'EVENT_MENU':assert.ok(this.choices.length,'menu choice supplied');this.put(a.variable,this.choices.shift());break;
       case 'EVENT_GOTO_LABEL':throw new Halt('goto',a.label);
       case 'EVENT_SWITCH_SCENE':throw new Halt('switch',a);
       case 'EVENT_SCENE_POP_STATE':throw new Halt('pop',a);
