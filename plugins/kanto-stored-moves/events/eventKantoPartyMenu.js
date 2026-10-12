@@ -1,0 +1,27 @@
+const id='EVENT_KANTO_PARTY_MENU';
+const fields=[{key:'variable',type:'variable',label:'Selection',defaultValue:'132'},{key:'items',type:'number',label:'Party size',min:1,max:6,defaultValue:6},...Array.from({length:6},(_,i)=>({key:'word'+(i+1),type:'variable',label:'Party slot '+(i+1)}))];
+const compile=(input,h)=>{
+ const items=input.items; if(!Number.isInteger(items)||items<1||items>6)throw new Error('Invalid party size');
+ const variable=h.getVariableAlias(input.variable);
+ let dest=variable;
+ if(h._isIndirectVariable(input.variable))dest=h._declareLocal('move_menu_result',1,true);
+ h._addComment('Kanto owned party: compact full-width rows');
+ h._overlayClear(0,0,20,items+2,'.UI_COLOR_WHITE',true,true);
+ h._overlayMoveTo(0,18,'.OVERLAY_SPEED_INSTANT');
+ h._overlayMoveTo(0,16-items,'.OVERLAY_IN_SPEED');
+ h._setTextLayer('.TEXT_LAYER_WIN');
+ for(let i=1;i<=6;i++)h._stackPushVariable(input['word'+i]);
+ h._addBankedFnDependency('kanto_party_menu_prepare');
+ h._callNative('kanto_party_menu_prepare');
+ h._stackPop(6);
+ h._displayText();
+ h._overlayWait(true,['.UI_WAIT_WINDOW','.UI_WAIT_TEXT']);
+ h._choice(dest,['.UI_MENU_CANCEL_B'],items);
+ for(let i=0;i<items;i++)h._menuItem(1,1+i,1,items,i===0?0:i,i===items-1?0:i+2);
+ h._overlayMoveTo(0,18,'.OVERLAY_OUT_SPEED');
+ h._overlayWait(true,['.UI_WAIT_WINDOW','.UI_WAIT_TEXT']);
+ h._overlayMoveTo(0,18,'.OVERLAY_SPEED_INSTANT');
+ if(h._isIndirectVariable(input.variable))h._setInd(variable,dest);
+ h._addNL();
+};
+module.exports={id,name:'Owned Pokemon party',description:'Display only populated party slots; B cancels without switching.',groups:['EVENT_GROUP_DIALOGUE'],fields,compile,waitUntilAfterInitFade:true};

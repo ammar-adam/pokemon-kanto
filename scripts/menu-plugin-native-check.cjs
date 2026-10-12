@@ -2,7 +2,14 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),Module=require('node:module');
 const root=path.resolve(__dirname,'..');const vendor=path.resolve(process.argv[2]||'');
 assert.equal(JSON.parse(fs.readFileSync(path.join(vendor,'package.json'))).version,'4.3.2','pinned compiler version');
-assert.equal(require('node:child_process').execFileSync('git',['rev-parse','HEAD'],{cwd:vendor,encoding:'utf8'}).trim(),'ccb891b2670134ba8237416772eea4ed09d34e1e','pinned source commit');
+const compilerPins={
+ 'src/lib/compiler/scriptBuilder/scriptBuilder.ts':'cf38cd6c26d21eaa7c9f318569ea34efc4aacfce52c67697d71e06f4a9502a87',
+ 'src/lib/compiler/scriptBuilder/scriptBuilderBase.ts':'8c84e7c0e1562445a20ba105f4049c83a607bff9641f9fa9c5795bf8e1f4c73c',
+ 'src/lib/project/loadScriptEventHandlers.ts':'b623e5fbd72dbf7aa7dcb1d010e563102db46a8d45c318d95a678ee3372eb666'
+};
+for(const [file,hash] of Object.entries(compilerPins))assert.equal(require('node:crypto').createHash('sha256').update(fs.readFileSync(path.join(vendor,file))).digest('hex'),hash,'exact pinned loader/builder bytes: '+file);
+// Source archives need no Git metadata; never resolve an unrelated ancestor repository.
+if(fs.existsSync(path.join(vendor,'.git')))assert.equal(require('node:child_process').execFileSync('git',['rev-parse','HEAD'],{cwd:vendor,encoding:'utf8'}).trim(),'ccb891b2670134ba8237416772eea4ed09d34e1e','pinned source commit');
 const provenance=JSON.parse(fs.readFileSync(path.join(root,'plugins/kanto-menu/upstream/provenance.json')));
 assert.equal(require('node:crypto').createHash('sha256').update(fs.readFileSync(path.join(vendor,'src/lib/events/eventMenu.js'))).digest('hex'),provenance.upstreamSHA256,'native core event remains pinned');
 process.env.NODE_ENV='test';const requireVendor=Module.createRequire(path.join(vendor,'package.json'));const ts=requireVendor('typescript');
@@ -43,6 +50,20 @@ require.extensions['.js']=(module,filename)=>filename.startsWith(path.join(vendo
   const args={variable:{type:'argument',symbol:'.SCRIPT_ARG_INDIRECT_0_VARIABLE',indirect:true},items,layout:'menu',cancelOnB,cancelOnLastOption,...Object.fromEntries(Array.from({length:items},(_,i)=>['option'+(i+1),'ITEM '+(i+1)]))};
   const native=compile('EVENT_MENU',args),fixed=compile('EVENT_KANTO_MENU',args);assert.deepEqual(fixed.output,normalize(native.output));assert.deepEqual(fixed.locals,native.locals);assert.equal(fixed.localsSize,native.localsSize);matrix++;
  }
+ assert.ok(handlers.EVENT_KANTO_MOVE_MENU,'stored-move event loaded by the actual project loader');
+ const stored=compile('EVENT_KANTO_MOVE_MENU',{variable:'14',word1:'100',word2:'101',word3:'102',word4:'103'});
+ assert.equal(stored.output.filter(line=>/VM_PUSH_VALUE\s/.test(line)).length,4,'four move words passed');
+ assert.ok(stored.output.some(line=>/VM_CALL_NATIVE.*b_kanto_move_menu_prepare.*_kanto_move_menu_prepare/.test(line)),'banked native formatter called');
+ assert.ok(stored.output.some(line=>/VM_POP\s+4/.test(line)),'all four input words popped');
+ assert.ok(stored.output.some(line=>/VM_OVERLAY_CLEAR\s+0, 0, 20, 6/.test(line)),'four full-width rows');
+ assert.ok(handlers.EVENT_KANTO_PARTY_MENU,'owned-party event loaded by the actual project loader');
+ for(let items=1;items<=6;items++){
+   const party=compile('EVENT_KANTO_PARTY_MENU',{variable:'132',items,...Object.fromEntries(Array.from({length:6},(_,i)=>['word'+(i+1),String(304+i)]))});
+   assert.equal(party.output.filter(line=>/VM_PUSH_VALUE\s/.test(line)).length,6);
+   assert.ok(party.output.some(line=>/VM_CALL_NATIVE.*b_kanto_party_menu_prepare.*_kanto_party_menu_prepare/.test(line)));
+   assert.ok(party.output.some(line=>/VM_POP\s+6/.test(line)));
+   assert.ok(party.output.some(line=>new RegExp('VM_OVERLAY_CLEAR\\s+0, 0, 20, '+(items+2)).test(line)));
+ }
  for(const h of Object.values(handlers))h.cleanup();
- console.log(JSON.stringify({passed:true,compiler:'GB Studio 4.3.2',scope:'actual project loader, QuickJS plugin, real ScriptBuilder',scoped,dialogue,indirectAndCancelCases:matrix,nativeBuild:false,runtime:false}));
+ console.log(JSON.stringify({passed:true,compiler:'GB Studio 4.3.2',scope:'actual project loader, QuickJS plugin, real ScriptBuilder',scoped,dialogue,indirectAndCancelCases:matrix,storedMoves:true,ownedPartySizes:6,nativeBuild:false,runtime:false}));
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -1,3 +1,4 @@
+import {isHighCriticalMove} from './critical-hits.mjs';
 /**
  * PP and spent-turn bookkeeping belong to the selection caller, before accuracy.
  * Scratch 13 holds foe HP across attack; attack must leave it intact. Scratch 135
@@ -14,7 +15,7 @@ export function playerMoveEffects({IF,EX,V,set,math,rand,say,invoke,storeHP,effe
   const heal=()=>[math(3,'add',16,'var'),EX('$3$ > $2$',[set(3,V(2))]),...sync()];
   function resolve({move,stats}){
     const key=move.toLowerCase().replace(/[^a-z]/g,''),effect=stats.effect;
-    const attack=[set(300,typeCode(stats.type)),set(301,stats.power),invoke('attack')];
+    const attack=[set(300,typeCode(stats.type)),set(301,stats.power),set(305,isHighCriticalMove(move)?2:0),invoke('attack')];
     let events;
     if(statusEffects[effect])events=statusEffects[effect]({move,stats});
     else if(effect==='SPLASH_EFFECT')events=[say('NOTHING HAPPENED.')];

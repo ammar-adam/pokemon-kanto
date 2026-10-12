@@ -1,0 +1,26 @@
+const id='EVENT_KANTO_MOVE_MENU';
+const fields=[{key:'variable',type:'variable',label:'Selection',defaultValue:'14'},...Array.from({length:4},(_,i)=>({key:'word'+(i+1),type:'variable',label:'Move slot '+(i+1)}))];
+const compile=(input,h)=>{
+ const variable=h.getVariableAlias(input.variable);
+ let dest=variable;
+ if(h._isIndirectVariable(input.variable))dest=h._declareLocal('move_menu_result',1,true);
+ h._addComment('Kanto stored moves: four full-width rows');
+ h._overlayClear(0,0,20,6,'.UI_COLOR_WHITE',true,true);
+ h._overlayMoveTo(0,18,'.OVERLAY_SPEED_INSTANT');
+ h._overlayMoveTo(0,12,'.OVERLAY_IN_SPEED');
+ h._setTextLayer('.TEXT_LAYER_WIN');
+ for(let i=1;i<=4;i++)h._stackPushVariable(input['word'+i]);
+ h._addBankedFnDependency('kanto_move_menu_prepare');
+ h._callNative('kanto_move_menu_prepare');
+ h._stackPop(4);
+ h._displayText();
+ h._overlayWait(true,['.UI_WAIT_WINDOW','.UI_WAIT_TEXT']);
+ h._choice(dest,['.UI_MENU_CANCEL_B'],4);
+ for(let i=0;i<4;i++)h._menuItem(1,1+i,1,4,i===0?0:i,i===3?0:i+2);
+ h._overlayMoveTo(0,18,'.OVERLAY_OUT_SPEED');
+ h._overlayWait(true,['.UI_WAIT_WINDOW','.UI_WAIT_TEXT']);
+ h._overlayMoveTo(0,18,'.OVERLAY_SPEED_INSTANT');
+ if(h._isIndirectVariable(input.variable))h._setInd(variable,dest);
+ h._addNL();
+};
+module.exports={id,name:'Stored Pokemon moves',description:'Display the four saved move identities and remaining PP without changing them.',groups:['EVENT_GROUP_DIALOGUE'],fields,compile,waitUntilAfterInitFade:true};

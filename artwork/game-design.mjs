@@ -17,6 +17,8 @@ import { indexedDispatch } from './indexed-dispatch.mjs';
 import { turnOrderAuthoring } from './turn-order.mjs';
 import { captureAuthoring } from './capture-rules.mjs';
 import { storyJournal } from './story-journal.mjs';
+import {criticalAuthoring} from './critical-hits.mjs';
+import {playerStatusAuthoring} from './player-status.mjs';
 import { sceneCompilerReferences } from './compiler-references.mjs';
 import {alignEncounterTerrain} from './native-terrain.mjs';
 
@@ -50,7 +52,7 @@ function dialoguePages(text) {
 }
 const say = text => E('EVENT_TEXT',{text:dialoguePages(text),minHeight:4,maxHeight:5,textHeight:3,closeButton:'a',speedIn:0,speedOut:0});
 const draw = (text,x,y) => E('EVENT_TEXT_DRAW',{text,x,y,location:'background'});
-const menu = (variable,options,cancel=true,layout='dialogue') => E('EVENT_MENU',{variable:String(variable),items:options.length,...Object.fromEntries(options.map((s,i)=>['option'+(i+1),s])),layout,cancelOnB:cancel,cancelOnLastOption:false});
+const menu = (variable,options,cancel=true,layout='dialogue') => layout==='stored-moves'?E('EVENT_KANTO_MOVE_MENU',{variable:String(variable),...Object.fromEntries(options.map((v,i)=>['word'+(i+1),v]))}):E('EVENT_MENU',{variable:String(variable),items:options.length,...Object.fromEntries(options.map((s,i)=>['option'+(i+1),s])),layout,cancelOnB:cancel,cancelOnLastOption:false});
 const sfx = (pitch=4,duration=.1) => E('EVENT_SOUND_PLAY_EFFECT',{type:'beep',pitch,duration,wait:false,priority:'medium'});
 const hide = actorId => E('EVENT_ACTOR_HIDE',{actorId});
 const show = actorId => E('EVENT_ACTOR_SHOW',{actorId});
@@ -100,14 +102,15 @@ function script(scene,key,events,scriptKey='script',entityType='actor') {
 function actor(scene,key,name,sprite,x,y,events=[],properties={}) { plan.actors.push({sceneId:ids.scenes[scene],id:uuid('actor:'+key),name,spriteSheetId:ids.sprites[sprite],x,y,direction:'down',properties}); if(events.length)script(scene,key,events); }
 function trigger(scene,key,x,y,width,height,events) {plan.triggers.push({sceneId:ids.scenes[scene],id:uuid('trigger:'+key),name:key,x,y,width,height});script(scene,key,events,'script','trigger');}
 const stages=enemyBattleStateAuthoring({EX,set,math,say});
-const learning=moveLearningAuthoring({species,IF,EX,V,set,math,menu,say,shared,lv,pp,
+const learning=moveLearningAuthoring({species,IF,EX,V,set,math,menu,say,shared,lv,pp,retired,
   onTurn:args=>orderedTurn(args),
   onMove:args=>playerEffects(args),
-  onStruggle:()=>[say('USED STRUGGLE!'),set(14,1),set(300,1),set(301,50),invoke('attack'),math(3,'sub',4),IF(3,'<',0,[set(3,0)]),...storeHP(),set(18,1)]
+  onStruggle:()=>[say('USED STRUGGLE!'),set(14,1),set(300,1),set(301,50),set(305,0),invoke('attack'),math(3,'sub',4),IF(3,'<',0,[set(3,0)]),...storeHP(),set(18,1)]
 });
 const restorePP = i => learning.restorePP(i);
+const initializeMoves = i => learning.initializeMoves(i);
 const {maxHPEvents,clampHPEvents,resizeHPEvents}=hpAuthoring({species,IF,EX,V,set,math,chunked});
-const heal = () => chunked('heal',species.map((_,i)=>EX(`$${own(i)}$ == 1 && $${retired(i)}$ == 0`,[...maxHPEvents(i+1,lv(i),hp(i)),...restorePP(i)])),32);
+const heal = () => chunked('heal',species.map((_,i)=>EX(`$${own(i)}$ == 1 && $${retired(i)}$ != 1`,[...maxHPEvents(i+1,lv(i),hp(i)),math(retired(i),'mod',4),...restorePP(i)])),32);
 const loadPokemonHP = i => [set(0,V(lv(i))),...maxHPEvents(i+1,0,2),...clampHPEvents(hp(i),2),set(3,V(hp(i)))];
 const loadHP = () => indexedDispatch('load_hp',1,species.map((_,i)=>({value:i+1,events:loadPokemonHP(i)})),{IF,shared});
 const storeHP = () => indexedDispatch('store_hp',1,species.map((_,i)=>({value:i+1,events:[set(hp(i),V(3))]})),{IF,shared});
@@ -140,7 +143,7 @@ for(const scene of world.map(s=>s.key).filter(s=>s in ids.scenes)) script(scene,
 
 script('title','title',adventure.title(),'script','scene');
 
-const starter = [IF(1,'==',0,[say('PROF. OAK:\nWHICH POKEMON\nWILL YOU CHOOSE?'),menu(13,species.slice(0,3).map(c=>c.name),false),set(1,V(13)),set(27,V(13)),...species.slice(0,3).map((c,i)=>IF(1,'==',i+1,[set(30+i,1),set(50+i,1),set(60+i,5),...maxHPEvents(i+1,60+i,40+i),...loadPokemonHP(i),...restorePP(i),sfx(6),say(`${c.name} JOINS\nYOUR PARTY!`)])),set(10,1),set(25,1),say(['HERE IS A POKEDEX,\nSIX POKE BALLS,\nAND THREE POTIONS.','BLUE IS WAITING\nOUTSIDE THE LAB.','EXPLORE ROUTE 1.\nTHEN WIN THE\nBOULDER BADGE!'])],[say('PROF. OAK:\nHOW IS YOUR\nPOKEDEX COMING?')])];
+const starter = [IF(1,'==',0,[say('PROF. OAK:\nWHICH POKEMON\nWILL YOU CHOOSE?'),menu(13,species.slice(0,3).map(c=>c.name),false),set(1,V(13)),set(27,V(13)),...species.slice(0,3).map((c,i)=>IF(1,'==',i+1,[set(30+i,1),set(50+i,1),set(60+i,5),...maxHPEvents(i+1,60+i,40+i),...loadPokemonHP(i),...initializeMoves(i),sfx(6),say(`${c.name} JOINS\nYOUR PARTY!`)])),set(10,1),set(25,1),say(['HERE IS A POKEDEX,\nSIX POKE BALLS,\nAND THREE POTIONS.','BLUE IS WAITING\nOUTSIDE THE LAB.','EXPLORE ROUTE 1.\nTHEN WIN THE\nBOULDER BADGE!'])],[say('PROF. OAK:\nHOW IS YOUR\nPOKEDEX COMING?')])];
 actor('laboratory','prof','Professor Oak','oak',9,8,starter);
 trigger('laboratory','leave lab',8,17,4,1,[IF(1,'==',0,[say('CHOOSE A PARTNER\nBEFORE YOU LEAVE.'),position(9,15)],[switchScene('fernvale',7,13)])]);
 trigger('fernvale','enter lab',7,12,2,1,[switchScene('laboratory',9,15,'up')]);
@@ -180,7 +183,8 @@ script('battlefield','hud',hud);
 
 const types=['NORMAL','FIRE','WATER','GRASS','ELECTRIC','ICE','FIGHTING','POISON','GROUND','FLYING','PSYCHIC','BUG','ROCK','GHOST','DRAGON'];
 function typeCode(type){return types.indexOf(type)+1;}
-const damage=damageAuthoring({species,IF,EX,V,set,math,chunked,shared,typeCode});
+const critical=criticalAuthoring({species,IF,EX,set,math,rand,shared});
+const damage=damageAuthoring({species,IF,EX,V,set,math,chunked,shared,typeCode,criticalFlag:critical.flag});
 const typeChart={
   NORMAL:[[],['ROCK'],['GHOST']],FIRE:[['GRASS','ICE','BUG'],['FIRE','WATER','ROCK','DRAGON'],[]],
   WATER:[['FIRE','GROUND','ROCK'],['WATER','GRASS','DRAGON'],[]],GRASS:[['WATER','GROUND','ROCK'],['FIRE','GRASS','POISON','FLYING','BUG','DRAGON'],[]],
@@ -197,20 +201,35 @@ function effectiveness(attacker,defender,message=false){return [
   ...chunked('chart',Object.entries(typeChart).map(([type,groups])=>IF(308,'==',typeCode(type),groups.flatMap((group,g)=>group.flatMap(target=>[309,310].map(variable=>IF(variable,'==',typeCode(target),g===2?[set(16,0)]:g===0?[math(16,'mul',2)]:[IF(16,'>',0,[math(16,'div',2),IF(16,'==',0,[set(16,1)])])]))))))),
   ...(message?[IF(16,'==',0,[say('IT HAS NO EFFECT!')])]:[])
 ];}
-script('battlefield','attack',[IF(300,'==',0,[set(300,1)]),IF(301,'<=',0,[set(301,40)]),...damage.base(1,4,0,7),...stages.playerDamage(),...effectiveness(1,4,true),rand(15,1,16),EX('$15$ == 1 && $16$ > 0',[math(16,'mul',2),say('A CRITICAL HIT!')]),rand(15,217,255),...damage.variance(),math(5,'sub',16,'var'),IF(5,'<',0,[set(5,0)]),sfx(3),fx('enemy'),invoke('hud')]);
+script('battlefield','attack',[IF(300,'==',0,[set(300,1)]),IF(301,'<=',0,[set(301,40)]),...critical.roll(1),...damage.base(1,4,0,7),IF(critical.flag,'!=',1,stages.playerDamage()),...effectiveness(1,4,true),EX('$305$ == 1 && $16$ > 0',[say('A CRITICAL HIT!')]),rand(15,217,255),...damage.variance(),math(5,'sub',16,'var'),IF(5,'<',0,[set(5,0)]),sfx(3),fx('enemy'),invoke('hud')]);
 
-const enemyMoves=enemyMoveAuthoring({species,getMoves:(p,level)=>movesAtLevel(p.dex,level),IF,EX,V,set,math,rand,say,shared,chunked,typeCode,damage,effectiveness,storeHP,invoke,sfx,fx,
-  statusEffects:{...stages.statusEffects,SWITCH_AND_TELEPORT_EFFECT:()=>[IF(19,'==',0,[say('THE FOE FLED!'),...pop()],[say('BUT IT FAILED!')])]},damageModifiers:stages.enemyDamage
+const playerStatus=playerStatusAuthoring({species,retired,IF,EX,V,set,math,rand,say,shared,effectiveness,storeHP});
+const enemyMoves=enemyMoveAuthoring({species,getMoves:(p,level)=>movesAtLevel(p.dex,level),IF,EX,V,set,math,rand,say,shared,chunked,typeCode,damage,critical,effectiveness,storeHP,invoke,sfx,fx,
+  statusEffects:{...stages.statusEffects,...playerStatus.effects,SWITCH_AND_TELEPORT_EFFECT:()=>[IF(19,'==',0,[say('THE FOE FLED!'),...pop()],[say('BUT IT FAILED!')])]},damageModifiers:stages.enemyDamage
 });
 script('battlefield','counter',enemyMoves.counter());
-const orderedTurn=turnOrderAuthoring({species,IF,EX,V,set,math,rand,shared,enemyMoves});
+const orderedTurn=turnOrderAuthoring({species,IF,EX,V,set,math,rand,shared,enemyMoves,playerStatus});
 
-script('battlefield','party',[...speciesMenu(),...species.map((c,i)=>IF(132,'==',i+1,[EX(`$${member(i)}$ == 1 && $${hp(i)}$ > 0`,[IF(1,'==',i+1,[say('ALREADY IN BATTLE.')],[...stages.clearPlayer(),set(1,i+1),...loadPokemonHP(i),set(18,1),set(17,0),invoke('hud'),say(`GO, ${c.name}!`)])],[say('NOT IN PARTY\nOR NEEDS REST.')])]))]);
+// Battle selection lists only the current party, including fainted partners.
+// Reuse idle evolution scratch 304..310; no new persistent/save variables.
+function ownedPartyMenu(){
+  const slots=[304,305,306,307,308,309];
+  return [set(132,0),set(310,0),...slots.map(v=>set(v,0)),
+    ...chunked('owned_party_fill',species.map((_,i)=>IF(member(i),'==',1,[
+      IF(310,'<',6,[math(310,'add',1),...slots.map((v,j)=>IF(310,'==',j+1,[set(v,i+1)]))])
+    ]))),
+    ...slots.map((_,i)=>IF(310,'==',i+1,[E('EVENT_KANTO_PARTY_MENU',{
+      variable:'132',items:i+1,...Object.fromEntries(slots.map((v,j)=>['word'+(j+1),String(v)]))
+    })])),
+    set(310,V(132)),set(132,0),...slots.map((v,j)=>IF(310,'==',j+1,[set(132,V(v))]))
+  ];
+}
+script('battlefield','party',[...ownedPartyMenu(),...species.map((c,i)=>IF(132,'==',i+1,[EX(`$${member(i)}$ == 1 && $${hp(i)}$ > 0`,[IF(1,'==',i+1,[say('ALREADY IN BATTLE.')],[...stages.clearPlayer(),set(1,i+1),...loadPokemonHP(i),set(18,1),set(17,0),invoke('hud'),say(`GO, ${c.name}!`)])],[say('NOT IN PARTY\nOR NEEDS REST.')])]))]);
 
 function registerPokemon(caught=false){return chunked(caught?'register_caught':'register',species.map((c,i)=>IF(4,'==',i+1,[
   EX(`$${own(i)}$ == 0 || $${retired(i)}$ == 1`,[
     IF(own(i),'==',0,[set(own(i),1),math(10,'add',1)]),set(retired(i),0),set(lv(i),V(7)),set(xp(i),0),
-    ...(caught?[...maxHPEvents(i+1,lv(i),16),set(hp(i),V(5)),...clampHPEvents(hp(i),16)]:maxHPEvents(i+1,lv(i),hp(i))),...restorePP(i),
+    ...(caught?[...maxHPEvents(i+1,lv(i),16),set(hp(i),V(5)),...clampHPEvents(hp(i),16)]:maxHPEvents(i+1,lv(i),hp(i))),...initializeMoves(i),
     IF(25,'<',6,[set(member(i),1),math(25,'add',1)],[say('PARTY FULL.\nSENT TO BILL\'S PC.')])
   ],[say('ALREADY IN YOUR\nCOLLECTION.')]),say(`${c.name}\nWAS REGISTERED!`)
 ])));}
@@ -231,7 +250,7 @@ function configureBoss(){return [
   IF(19,'==',3,[set(4,8),set(7,6)]),...maxHPEvents(V(4),7,6),set(5,V(6)),...stages.clearEnemy(),set(28,0),set(29,0),set(68,0),set(69,0),set(302,0),set(303,0)];}
 script('battlefield','boss-config',configureBoss());
 script('battlefield','heal-all',heal());
-const gainXP=()=>species.map((c,i)=>IF(1,'==',i+1,[math(xp(i),'add',7,'var'),set(16,V(lv(i))),math(16,'mul',2),EX(`$${xp(i)}$ >= $16$ && $${lv(i)}$ < 100`,[math(xp(i),'sub',16,'var'),...maxHPEvents(i+1,lv(i),16),math(lv(i),'add',1),set(0,V(lv(i))),...maxHPEvents(i+1,0,2),...resizeHPEvents(hp(i),16,2),set(3,V(hp(i))),say(`${c.name}\nGREW TO LV $0$!`),...learning.learnLevel(i)])]));
+const gainXP=()=>species.map((c,i)=>IF(1,'==',i+1,[...learning.ensureMoves(i),math(xp(i),'add',7,'var'),set(16,V(lv(i))),math(16,'mul',2),EX(`$${xp(i)}$ >= $16$ && $${lv(i)}$ < 100`,[math(xp(i),'sub',16,'var'),...maxHPEvents(i+1,lv(i),16),math(lv(i),'add',1),set(0,V(lv(i))),...maxHPEvents(i+1,0,2),...resizeHPEvents(hp(i),16,2),set(3,V(hp(i))),say(`${c.name}\nGREW TO LV $0$!`),...learning.learnLevel(i)])]));
 function evolve(){
   const itemModes={'water-stone':1,'thunder-stone':2,'fire-stone':3,'leaf-stone':4,'moon-stone':5};
   return [set(305,V(1)),set(306,0),...chunked('evolution',species.flatMap((c,i)=>c.evolutions.map(e=>{
@@ -239,8 +258,8 @@ function evolve(){
     if(e.trigger==='level-up'&&!e.level)return null;
     return EX(`$305$ == ${i+1} && $306$ == 0 && $304$ == ${mode} && $${member(i)}$ == 1 && $${lv(i)}$ >= ${e.level||1} && ($${own(target)}$ == 0 || $${retired(target)}$ == 1)`,[
       say(`WHAT? ${c.name}\nIS EVOLVING!`),IF(own(target),'==',0,[set(own(target),1),math(10,'add',1)]),
-      set(retired(target),0),set(retired(i),1),set(member(i),0),set(member(target),1),set(lv(target),V(lv(i))),set(xp(target),V(xp(i))),set(hp(target),V(hp(i))),
-      ...maxHPEvents(i+1,lv(i),16),...maxHPEvents(e.to,lv(target),2),...resizeHPEvents(hp(target),16,2),set(hp(i),0),...restorePP(target),set(1,e.to),set(306,1),sfx(7),say(`IT EVOLVED INTO\n${species[target].name}!`)
+      ...learning.ensureMoves(i),set(retired(target),V(retired(i))),set(retired(i),1),set(member(i),0),set(member(target),1),set(lv(target),V(lv(i))),set(xp(target),V(xp(i))),set(hp(target),V(hp(i))),
+      ...maxHPEvents(i+1,lv(i),16),...maxHPEvents(e.to,lv(target),2),...resizeHPEvents(hp(target),16,2),set(hp(i),0),...learning.inheritMoves(i,target),...learning.learnLevel(target),set(1,e.to),set(306,1),sfx(7),say(`IT EVOLVED INTO\n${species[target].name}!`)
     ]);
   }).filter(Boolean))),...loadHP()];
 }
@@ -273,6 +292,7 @@ IF(18,'>',0,[
   IF(5,'<=',0,[set(5,0),invoke('victory'),go('turn')]),
   EX('$3$ > 0 && $18$ == 1',[invoke('counter')]),
   ...shared('end_turn_residual',[
+    EX('$5$ > 0',playerStatus.residual()),
     EX('$303$ == 1 && $5$ > 0 && $3$ > 0',[
       set(16,V(6)),math(16,'div',16),IF(16,'<',1,[set(16,1)]),math(5,'sub',16,'var'),IF(5,'<',0,[set(5,0)]),
       invoke('hud'),say('POISON HURTS\nTHE FOE!')]),
@@ -317,8 +337,8 @@ enter('lavender','east route eight',30,15,2,3,'route_eight',3,16);
 enter('route_eight','west lavender',1,15,2,3,'lavender',28,16);
 enter('route_eight','north celadon',14,1,4,1,'celadon',15,23);
 enter('celadon','south route eight',14,24,4,2,'route_eight',15,3);
-enter('celadon','rocket hideout',6,18,2,1,'rocket_hideout',15,27);
-enter('rocket_hideout','leave hideout',14,30,4,2,'celadon',6,17);
+enter('celadon','rocket hideout',6,23,2,1,'rocket_hideout',15,27);
+enter('rocket_hideout','leave hideout',14,30,4,2,'celadon',6,24);
 enter('fernvale','enter red house',24,12,2,1,'red_house',9,15);
 enter('red_house','leave red house',8,17,4,1,'fernvale',24,13);
 enter('pewter','enter pewter gym',24,12,2,1,'arena',9,15);
@@ -329,22 +349,22 @@ enter('vermilion_gym','leave vermilion gym',8,17,4,1,'vermilion',24,13);
 enter('celadon','enter celadon gym',24,12,2,1,'celadon_gym',9,15,{variable:159,value:1,message:'TEAM ROCKET IS\nHIDING NEARBY.'});
 enter('celadon_gym','leave celadon gym',8,17,4,1,'celadon',24,13);
 enter('vermilion','board ss anne',23,19,4,2,'ss_anne',11,21,{variable:157,value:1,message:'THE SHIP NEEDS\nA S.S. TICKET.'});
-enter('ss_anne','leave ss anne',10,23,4,1,'vermilion',24,20);
+enter('ss_anne','leave ss anne',10,23,4,1,'vermilion',21,20);
 
 const healer=(scene,checkpoint)=>{actor(scene,scene+' nurse','Nurse Joy','joy',19,22,[say('NURSE JOY:\nYOUR POKEMON\nNEED A REST.'),...heal(),...loadHP(),set(134,checkpoint),sfx(7),say('EVERYONE IS\nFULLY RESTORED.')]);};
 for(const [scene,checkpoint]of [['viridian',1],['pewter',2],['cerulean',3],['vermilion',4],['lavender',5],['celadon',6]])healer(scene,checkpoint);
 actor('red_house','mom','Mom','joy',9,8,[say('MOM:\nREST HERE, RED.'),...heal(),...loadHP(),say('YOUR POKEMON\nLOOK GREAT!')]);
 const trainer=(scene,key,name,sprite,x,y,mode,flag)=>{const portrait=/ROCKET/i.test(name)?'trainer-rocket':/BUG CATCHER/i.test(name)?'trainer-catcher':/SAILOR/i.test(name)?'trainer-sailor':sprite;actor(scene,key,name,portrait,x,y,[IF(flag,'==',1,[say(`${name}:\nYOU WON OUR\nLAST BATTLE!`)],[say(`${name}:\nLET US BATTLE!`),menu(13,['BATTLE','LATER']),IF(13,'==',1,[set(19,mode),set(20,1),...startBattle()])])]);};
 trainer('forest','forest scout','BUG CATCHER','blue',12,9,14,167);
-trainer('forest','forest catcher','Bug Catcher','oak',20,19,15,168);
+trainer('forest','forest catcher','Bug Catcher','oak',18,19,15,168);
 trainer('forest','forest expert','Forest Ranger','brock',11,24,16,169);
 trainer('forest','forest kid','Bug Catcher II','blue',22,8,11,164);
 trainer('route_three','route three lass','Lass','joy',12,12,13,166);
 trainer('route_three','route three hiker','Youngster','blue',20,22,12,165);
 trainer('mt_moon','moon rocket','Rocket Grunt','blue',15,10,7,153);
-trainer('mt_moon','moon hiker','Moon Hiker','brock',20,23,22,173);
+trainer('mt_moon','moon hiker','Moon Hiker','brock',19,23,22,173);
 trainer('nugget_bridge','bridge grunt','Bridge Rocket','blue',15,9,9,155);
-trainer('nugget_bridge','bridge scout','Bridge Scout','oak',18,22,25,176);
+trainer('nugget_bridge','bridge scout','Bridge Scout','oak',16,22,25,176);
 trainer('route_five','route five swimmer','Swimmer','blue',12,17,18,171);
 trainer('ss_anne','ship sailor','Sailor','brock',6,11,21,172);
 trainer('ss_anne','ship gentleman','Gentleman','oak',18,11,23,174);
@@ -374,8 +394,20 @@ for(const site of world.filter(s=>s.encounters&&s.key!=='route_one')){
     trigger(site.key,`wild ${site.key} ${patch} ${dy}`,x,y+dy,['cave','hideout','bridge'].includes(site.kind)?4:8,1,[IF(21,'==',1,[set(21,0)],[rand(15,1,3),IF(15,'==',1,[set(19,0),rand(135,1,candidates.length),...candidates.map((id,i)=>IF(135,'==',i+1,[set(4,id)])),rand(7,Math.max(2,site.level-2),site.level+2),...maxHPEvents(V(4),7,6),set(5,V(6)),...startBattle()])])]);
   }
 }
-authorOpening({plan,ids,uuid,E,IF,EX,N,V,set,math,rand,say,menu,script,actor,trigger,switchScene,position,hide,show,heal,loadHP,storage,pauseMenu,restorePP,startBattle,sfx,maxHPEvents});
+authorOpening({plan,ids,uuid,E,IF,EX,N,V,set,math,rand,say,menu,script,actor,trigger,switchScene,position,hide,show,heal,loadHP,storage,pauseMenu,restorePP:initializeMoves,startBattle,sfx,maxHPEvents});
 authorRedProgression({plan,ids,uuid,actor,trainer,IF,EX,say,menu,set,startBattle});
+// Restore resolved route passages on every scene entry. Keep this in the
+// authoring source so a full rebuild preserves the saved quest flags.
+for(const [scene,events]of [
+  ['nugget_bridge',[IF(155,'==',1,[E('EVENT_ACTOR_SET_POSITION',{actorId:uuid('actor:bridge grunt'),x:N(14),y:N(9),units:'tiles'})])]],
+  ['route_twelve',[
+    IF(1740,'==',1,[E('EVENT_ACTOR_DEACTIVATE',{actorId:uuid('actor:sleeping snorlax')})]),
+    IF(240,'==',1,[E('EVENT_ACTOR_SET_POSITION',{actorId:uuid('actor:fisherman'),x:N(14),y:N(22),units:'tiles'})])
+  ]]
+]){
+  const owner=plan.scripts.find(s=>s.target.sceneId===ids.scenes[scene]&&!s.target.actorId&&!s.target.triggerId&&s.target.scriptKey==='script');
+  if(!owner)throw new Error('Missing route init '+scene);owner.events.push(...events);
+}
 for(const owner of plan.scripts.filter(s=>!s.target.actorId&&!s.target.triggerId&&s.target.scriptKey==='script')) {
   const key=Object.keys(ids.scenes).find(key=>ids.scenes[key]===owner.target.sceneId);
   owner.events.unshift(E('EVENT_MUSIC_PLAY',{musicId:musicId(sceneScore(key))}));
@@ -412,6 +444,9 @@ for(const actorId of invokedActors){
 for(const s of [...plan.customScripts,...plan.scripts])visitAuthored(s.script||s.events,e=>{
   if(e.command==='EVENT_ACTOR_INVOKE'){e.command='EVENT_CALL_CUSTOM_EVENT';e.args={customEventId:logicCalls.get(e.args.actorId)};}
 });
+// The hidden bag actor forwards to its already shared routine; keep one menu owner.
+const bagOwner=plan.scripts.find(s=>s.target.actorId===uuid('actor:bag')&&s.target.scriptKey==='script');
+bagOwner.events=[E('EVENT_CALL_CUSTOM_EVENT',{customEventId:logicCalls.get(uuid('actor:bag'))})];
 const count = events => events.reduce((n,e)=>n+1+Object.values(e.children||{}).reduce((m,a)=>m+count(a),0),0);
 // A native script bank is small. Split independent event lists into shared calls.
 let bankSerial=0;

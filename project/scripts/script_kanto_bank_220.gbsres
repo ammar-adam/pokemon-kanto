@@ -5,92 +5,63 @@
   "symbol": "script_kanto_bank_220",
   "description": "Shared Kanto game logic",
   "variables": {},
-  "actors": {
-    "556aa1b9-f14f-5fc7-b09a-634572df67e9": {
-      "id": "556aa1b9-f14f-5fc7-b09a-634572df67e9",
-      "name": "Partner"
-    },
-    "9549c80a-acc3-5eaa-baf1-db825336f3d2": {
-      "id": "9549c80a-acc3-5eaa-baf1-db825336f3d2",
-      "name": "Opponent"
-    }
-  },
+  "actors": {},
   "script": [
     {
-      "id": "020216a6-21b2-47d0-bffa-78187ff51dc3",
+      "id": "7dc9cb58-140e-4c83-a362-f65cfe8b3590",
       "command": "EVENT_IF",
       "args": {
         "condition": {
           "type": "eq",
           "valueA": {
             "type": "variable",
-            "value": "1"
+            "value": "132"
           },
           "valueB": {
             "type": "number",
-            "value": 63
+            "value": 81
           }
         }
       },
       "children": {
         "true": [
           {
-            "id": "04421695-a319-4585-818f-f4add39af426",
+            "id": "46eeffbe-6c18-4ad6-8e0b-0e95169c6e6f",
             "command": "EVENT_IF",
             "args": {
               "condition": {
                 "type": "expression",
-                "value": "$945$ + $946$ + $947$ + $948$ <= 0"
+                "value": "$1120$ == 0 || $1129$ == 1"
               }
             },
             "children": {
               "true": [
                 {
-                  "id": "b065fbc2-2fda-4fec-9866-f3e7bd180385",
-                  "command": "EVENT_CALL_CUSTOM_EVENT",
+                  "id": "e477ee27-a323-449c-a010-77838b442ffa",
+                  "command": "EVENT_TEXT",
                   "args": {
-                    "customEventId": "fef67bd2-94d7-53de-bb42-7e2076bd0591",
-                    "$actor[556aa1b9-f14f-5fc7-b09a-634572df67e9]$": "556aa1b9-f14f-5fc7-b09a-634572df67e9",
-                    "$actor[9549c80a-acc3-5eaa-baf1-db825336f3d2]$": "9549c80a-acc3-5eaa-baf1-db825336f3d2"
+                    "text": [
+                      "NO POKEMON OF\nTHIS SPECIES IN\nYOUR COLLECTION."
+                    ],
+                    "minHeight": 4,
+                    "maxHeight": 5,
+                    "textHeight": 3,
+                    "closeButton": "a",
+                    "speedIn": 0,
+                    "speedOut": 0
                   }
                 }
               ],
               "false": [
                 {
-                  "id": "94596c67-66e6-4d8b-a44c-9ce1bd6207ad",
-                  "command": "EVENT_SET_VALUE",
-                  "args": {
-                    "variable": "14",
-                    "value": {
-                      "type": "number",
-                      "value": 0
-                    }
-                  }
-                },
-                {
-                  "id": "95e2ba44-9644-4039-b0e2-e989784aad4f",
-                  "command": "EVENT_MENU",
-                  "args": {
-                    "variable": "14",
-                    "items": 4,
-                    "option1": "ROAR $945$",
-                    "option2": "EMBER $946$",
-                    "option3": "LEER $947$",
-                    "option4": "TAKE DOWN $948$",
-                    "layout": "dialogue",
-                    "cancelOnB": true,
-                    "cancelOnLastOption": false
-                  }
-                },
-                {
-                  "id": "d392726b-4e13-4ca1-a643-b63b6cdb247e",
+                  "id": "2c986336-7ade-4ae9-9a86-ca8d400a3175",
                   "command": "EVENT_IF",
                   "args": {
                     "condition": {
                       "type": "eq",
                       "valueA": {
                         "type": "variable",
-                        "value": "14"
+                        "value": "1122"
                       },
                       "valueB": {
                         "type": "number",
@@ -101,29 +72,84 @@
                   "children": {
                     "true": [
                       {
-                        "id": "423bdbe9-7e88-439c-932c-54e3a5545531",
+                        "id": "76f36544-dff2-40e9-9b80-d7ec163fb303",
                         "command": "EVENT_IF",
                         "args": {
                           "condition": {
-                            "type": "lte",
+                            "type": "gt",
                             "valueA": {
                               "type": "variable",
-                              "value": "945"
+                              "value": "25"
                             },
                             "valueB": {
                               "type": "number",
-                              "value": 0
+                              "value": 1
                             }
                           }
                         },
                         "children": {
                           "true": [
                             {
-                              "id": "d537042e-4487-471a-a14d-6cd1e3b4c4f5",
+                              "id": "6d809456-6a66-4f6c-9f29-3b8230d1b78c",
+                              "command": "EVENT_SET_VALUE",
+                              "args": {
+                                "variable": "1122",
+                                "value": {
+                                  "type": "number",
+                                  "value": 0
+                                }
+                              }
+                            },
+                            {
+                              "id": "22a89cd2-6a94-4e65-80c2-b6636eb0a89e",
+                              "command": "EVENT_VARIABLE_MATH",
+                              "args": {
+                                "vectorX": "25",
+                                "operation": "sub",
+                                "other": "val",
+                                "value": 1,
+                                "clamp": false
+                              }
+                            },
+                            {
+                              "id": "64f1dd95-8bdf-468c-acad-220b33bbef3e",
+                              "command": "EVENT_IF",
+                              "args": {
+                                "condition": {
+                                  "type": "eq",
+                                  "valueA": {
+                                    "type": "variable",
+                                    "value": "1"
+                                  },
+                                  "valueB": {
+                                    "type": "number",
+                                    "value": 81
+                                  }
+                                }
+                              },
+                              "children": {
+                                "true": [
+                                  {
+                                    "id": "805c071f-dd1f-4777-a7ad-315afba89d6c",
+                                    "command": "EVENT_SET_VALUE",
+                                    "args": {
+                                      "variable": "1",
+                                      "value": {
+                                        "type": "number",
+                                        "value": 0
+                                      }
+                                    }
+                                  }
+                                ],
+                                "false": []
+                              }
+                            },
+                            {
+                              "id": "2a0c795d-3b08-41ba-ad92-a21685e1b6fc",
                               "command": "EVENT_TEXT",
                               "args": {
                                 "text": [
-                                  "NO PP LEFT\nFOR THAT MOVE."
+                                  "DEPOSITED\nIN THE PC BOX."
                                 ],
                                 "minHeight": 4,
                                 "maxHeight": 5,
@@ -136,89 +162,18 @@
                           ],
                           "false": [
                             {
-                              "id": "b7241e8a-bf5d-4204-99da-da9f6d680376",
-                              "command": "EVENT_CALL_CUSTOM_EVENT",
+                              "id": "59094835-3419-4ffe-893a-02830470068c",
+                              "command": "EVENT_TEXT",
                               "args": {
-                                "customEventId": "b8348a66-da79-5f74-b52c-8c2b492027c3",
-                                "$actor[556aa1b9-f14f-5fc7-b09a-634572df67e9]$": "556aa1b9-f14f-5fc7-b09a-634572df67e9"
-                              }
-                            },
-                            {
-                              "id": "9e8c127d-eaab-405d-b120-f592943b361d",
-                              "command": "EVENT_IF",
-                              "args": {
-                                "condition": {
-                                  "type": "expression",
-                                  "value": "$3$ > 0 && $5$ > 0"
-                                }
-                              },
-                              "children": {
-                                "true": [
-                                  {
-                                    "id": "81c9f240-5cf3-4e19-a795-e1b91c4b6d69",
-                                    "command": "EVENT_VARIABLE_MATH",
-                                    "args": {
-                                      "vectorX": "945",
-                                      "operation": "sub",
-                                      "other": "val",
-                                      "value": 1,
-                                      "clamp": false
-                                    }
-                                  },
-                                  {
-                                    "id": "09d6fc4b-387a-4c2a-a04b-a4d36f0f0c13",
-                                    "command": "EVENT_SET_VALUE",
-                                    "args": {
-                                      "variable": "18",
-                                      "value": {
-                                        "type": "number",
-                                        "value": 1
-                                      }
-                                    }
-                                  },
-                                  {
-                                    "id": "1250b482-46ea-4521-853b-3c8d5364b381",
-                                    "command": "EVENT_SET_VALUE",
-                                    "args": {
-                                      "variable": "14",
-                                      "value": {
-                                        "type": "number",
-                                        "value": 1
-                                      }
-                                    }
-                                  },
-                                  {
-                                    "id": "c050d98c-d364-4100-971b-5d12054d66e8",
-                                    "command": "EVENT_TEXT",
-                                    "args": {
-                                      "text": [
-                                        "USED ROAR!"
-                                      ],
-                                      "minHeight": 4,
-                                      "maxHeight": 5,
-                                      "textHeight": 3,
-                                      "closeButton": "a",
-                                      "speedIn": 0,
-                                      "speedOut": 0
-                                    }
-                                  },
-                                  {
-                                    "id": "65dffb34-7727-4ec7-9e9a-04d2061922cb",
-                                    "command": "EVENT_CALL_CUSTOM_EVENT",
-                                    "args": {
-                                      "customEventId": "0c7ab41d-ea8b-56ba-bb66-406587960f7e"
-                                    }
-                                  }
+                                "text": [
+                                  "KEEP ONE POKEMON\nIN YOUR PARTY."
                                 ],
-                                "false": []
-                              }
-                            },
-                            {
-                              "id": "5af680e5-c564-4057-a679-14d958a314c9",
-                              "command": "EVENT_CALL_CUSTOM_EVENT",
-                              "args": {
-                                "customEventId": "bc97964c-ec71-55a1-b8f9-6a557e419d5c",
-                                "$actor[556aa1b9-f14f-5fc7-b09a-634572df67e9]$": "556aa1b9-f14f-5fc7-b09a-634572df67e9"
+                                "minHeight": 4,
+                                "maxHeight": 5,
+                                "textHeight": 3,
+                                "closeButton": "a",
+                                "speedIn": 0,
+                                "speedOut": 0
                               }
                             }
                           ]
@@ -227,442 +182,1111 @@
                     ],
                     "false": [
                       {
-                        "id": "f294438b-6e49-4780-84fa-cd890622e99c",
+                        "id": "c785b8bd-579c-4dce-8c53-27bbe3896461",
                         "command": "EVENT_IF",
                         "args": {
                           "condition": {
-                            "type": "eq",
+                            "type": "lt",
                             "valueA": {
                               "type": "variable",
-                              "value": "14"
+                              "value": "25"
                             },
                             "valueB": {
                               "type": "number",
-                              "value": 2
+                              "value": 6
                             }
                           }
                         },
                         "children": {
                           "true": [
                             {
-                              "id": "8e5b832f-e0f6-455f-b7b3-2a3ec84ac762",
-                              "command": "EVENT_IF",
+                              "id": "8dabf9ed-e738-408d-858c-19956b0a454b",
+                              "command": "EVENT_SET_VALUE",
                               "args": {
-                                "condition": {
-                                  "type": "lte",
-                                  "valueA": {
-                                    "type": "variable",
-                                    "value": "946"
-                                  },
-                                  "valueB": {
-                                    "type": "number",
-                                    "value": 0
-                                  }
+                                "variable": "1122",
+                                "value": {
+                                  "type": "number",
+                                  "value": 1
                                 }
-                              },
-                              "children": {
-                                "true": [
-                                  {
-                                    "id": "7853e309-7252-48c7-bc82-f02283f8c9fa",
-                                    "command": "EVENT_TEXT",
-                                    "args": {
-                                      "text": [
-                                        "NO PP LEFT\nFOR THAT MOVE."
-                                      ],
-                                      "minHeight": 4,
-                                      "maxHeight": 5,
-                                      "textHeight": 3,
-                                      "closeButton": "a",
-                                      "speedIn": 0,
-                                      "speedOut": 0
-                                    }
-                                  }
+                              }
+                            },
+                            {
+                              "id": "0cfb76c4-2228-42d4-8cc8-d74ef1190efb",
+                              "command": "EVENT_VARIABLE_MATH",
+                              "args": {
+                                "vectorX": "25",
+                                "operation": "add",
+                                "other": "val",
+                                "value": 1,
+                                "clamp": false
+                              }
+                            },
+                            {
+                              "id": "896c200d-b003-4446-a26e-31421ddf89da",
+                              "command": "EVENT_TEXT",
+                              "args": {
+                                "text": [
+                                  "WITHDREW\nPOKEMON."
                                 ],
-                                "false": [
-                                  {
-                                    "id": "27d9c8e5-3387-4e50-9459-d81b20ea16b2",
-                                    "command": "EVENT_CALL_CUSTOM_EVENT",
-                                    "args": {
-                                      "customEventId": "b8348a66-da79-5f74-b52c-8c2b492027c3",
-                                      "$actor[556aa1b9-f14f-5fc7-b09a-634572df67e9]$": "556aa1b9-f14f-5fc7-b09a-634572df67e9"
-                                    }
-                                  },
-                                  {
-                                    "id": "aedeabc6-d4fc-4d98-8a84-33ea0a16add2",
-                                    "command": "EVENT_IF",
-                                    "args": {
-                                      "condition": {
-                                        "type": "expression",
-                                        "value": "$3$ > 0 && $5$ > 0"
-                                      }
-                                    },
-                                    "children": {
-                                      "true": [
-                                        {
-                                          "id": "030545bf-b041-4577-9b1a-9a5ad6690f24",
-                                          "command": "EVENT_VARIABLE_MATH",
-                                          "args": {
-                                            "vectorX": "946",
-                                            "operation": "sub",
-                                            "other": "val",
-                                            "value": 1,
-                                            "clamp": false
-                                          }
-                                        },
-                                        {
-                                          "id": "6269ba84-dba2-49a6-91c7-deca19fbdc1e",
-                                          "command": "EVENT_SET_VALUE",
-                                          "args": {
-                                            "variable": "18",
-                                            "value": {
-                                              "type": "number",
-                                              "value": 1
-                                            }
-                                          }
-                                        },
-                                        {
-                                          "id": "fc6d909b-d250-4079-84b7-e164eb871e27",
-                                          "command": "EVENT_SET_VALUE",
-                                          "args": {
-                                            "variable": "14",
-                                            "value": {
-                                              "type": "number",
-                                              "value": 2
-                                            }
-                                          }
-                                        },
-                                        {
-                                          "id": "1f28c7f8-83b8-4b89-90b4-5b0142661108",
-                                          "command": "EVENT_TEXT",
-                                          "args": {
-                                            "text": [
-                                              "USED EMBER!"
-                                            ],
-                                            "minHeight": 4,
-                                            "maxHeight": 5,
-                                            "textHeight": 3,
-                                            "closeButton": "a",
-                                            "speedIn": 0,
-                                            "speedOut": 0
-                                          }
-                                        },
-                                        {
-                                          "id": "26bd2b98-36ed-44a1-8934-5acb912351b3",
-                                          "command": "EVENT_CALL_CUSTOM_EVENT",
-                                          "args": {
-                                            "customEventId": "66100f82-acf6-5ce3-bf09-9a5cb3b9820f",
-                                            "$actor[9549c80a-acc3-5eaa-baf1-db825336f3d2]$": "9549c80a-acc3-5eaa-baf1-db825336f3d2"
-                                          }
-                                        }
-                                      ],
-                                      "false": []
-                                    }
-                                  },
-                                  {
-                                    "id": "9a2a773e-c4df-47c9-a1c5-4f9c2d759c83",
-                                    "command": "EVENT_CALL_CUSTOM_EVENT",
-                                    "args": {
-                                      "customEventId": "bc97964c-ec71-55a1-b8f9-6a557e419d5c",
-                                      "$actor[556aa1b9-f14f-5fc7-b09a-634572df67e9]$": "556aa1b9-f14f-5fc7-b09a-634572df67e9"
-                                    }
-                                  }
-                                ]
+                                "minHeight": 4,
+                                "maxHeight": 5,
+                                "textHeight": 3,
+                                "closeButton": "a",
+                                "speedIn": 0,
+                                "speedOut": 0
                               }
                             }
                           ],
                           "false": [
                             {
-                              "id": "882e4f77-b1ba-4b33-ad8d-5650679bc5f4",
+                              "id": "eaafa428-1ad6-4b61-81bd-5e4ba193d8fb",
+                              "command": "EVENT_TEXT",
+                              "args": {
+                                "text": [
+                                  "PARTY IS FULL.\nDEPOSIT ONE\nFIRST."
+                                ],
+                                "minHeight": 4,
+                                "maxHeight": 5,
+                                "textHeight": 3,
+                                "closeButton": "a",
+                                "speedIn": 0,
+                                "speedOut": 0
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "false": []
+      }
+    },
+    {
+      "id": "be8cb537-9c2b-4f54-a1fe-2ed739988616",
+      "command": "EVENT_IF",
+      "args": {
+        "condition": {
+          "type": "eq",
+          "valueA": {
+            "type": "variable",
+            "value": "132"
+          },
+          "valueB": {
+            "type": "number",
+            "value": 82
+          }
+        }
+      },
+      "children": {
+        "true": [
+          {
+            "id": "0911aa98-6b94-40c6-b876-12c3103f7969",
+            "command": "EVENT_IF",
+            "args": {
+              "condition": {
+                "type": "expression",
+                "value": "$1130$ == 0 || $1139$ == 1"
+              }
+            },
+            "children": {
+              "true": [
+                {
+                  "id": "74ecd7a8-8528-4cff-965c-61f749780f68",
+                  "command": "EVENT_TEXT",
+                  "args": {
+                    "text": [
+                      "NO POKEMON OF\nTHIS SPECIES IN\nYOUR COLLECTION."
+                    ],
+                    "minHeight": 4,
+                    "maxHeight": 5,
+                    "textHeight": 3,
+                    "closeButton": "a",
+                    "speedIn": 0,
+                    "speedOut": 0
+                  }
+                }
+              ],
+              "false": [
+                {
+                  "id": "42df7b99-a76c-4c46-9111-8d3d928325ac",
+                  "command": "EVENT_IF",
+                  "args": {
+                    "condition": {
+                      "type": "eq",
+                      "valueA": {
+                        "type": "variable",
+                        "value": "1132"
+                      },
+                      "valueB": {
+                        "type": "number",
+                        "value": 1
+                      }
+                    }
+                  },
+                  "children": {
+                    "true": [
+                      {
+                        "id": "b415f015-69a5-42d9-8bb6-dd2bc1341c1b",
+                        "command": "EVENT_IF",
+                        "args": {
+                          "condition": {
+                            "type": "gt",
+                            "valueA": {
+                              "type": "variable",
+                              "value": "25"
+                            },
+                            "valueB": {
+                              "type": "number",
+                              "value": 1
+                            }
+                          }
+                        },
+                        "children": {
+                          "true": [
+                            {
+                              "id": "0927c86c-7161-4496-ab38-947882777979",
+                              "command": "EVENT_SET_VALUE",
+                              "args": {
+                                "variable": "1132",
+                                "value": {
+                                  "type": "number",
+                                  "value": 0
+                                }
+                              }
+                            },
+                            {
+                              "id": "7d63a88c-1923-4c96-8e8a-dedf19a42ae8",
+                              "command": "EVENT_VARIABLE_MATH",
+                              "args": {
+                                "vectorX": "25",
+                                "operation": "sub",
+                                "other": "val",
+                                "value": 1,
+                                "clamp": false
+                              }
+                            },
+                            {
+                              "id": "c566dd5c-314b-44dc-bce6-3a750aab8424",
                               "command": "EVENT_IF",
                               "args": {
                                 "condition": {
                                   "type": "eq",
                                   "valueA": {
                                     "type": "variable",
-                                    "value": "14"
+                                    "value": "1"
                                   },
                                   "valueB": {
                                     "type": "number",
-                                    "value": 3
+                                    "value": 82
                                   }
                                 }
                               },
                               "children": {
                                 "true": [
                                   {
-                                    "id": "65c8639c-e502-4094-80c6-46e89f7795a0",
-                                    "command": "EVENT_IF",
+                                    "id": "933e325d-76b5-45df-8608-8261cf5fbca5",
+                                    "command": "EVENT_SET_VALUE",
                                     "args": {
-                                      "condition": {
-                                        "type": "lte",
-                                        "valueA": {
-                                          "type": "variable",
-                                          "value": "947"
-                                        },
-                                        "valueB": {
-                                          "type": "number",
-                                          "value": 0
-                                        }
+                                      "variable": "1",
+                                      "value": {
+                                        "type": "number",
+                                        "value": 0
                                       }
-                                    },
-                                    "children": {
-                                      "true": [
-                                        {
-                                          "id": "c823a8f1-32c7-4684-bd66-72a76e9edd73",
-                                          "command": "EVENT_TEXT",
-                                          "args": {
-                                            "text": [
-                                              "NO PP LEFT\nFOR THAT MOVE."
-                                            ],
-                                            "minHeight": 4,
-                                            "maxHeight": 5,
-                                            "textHeight": 3,
-                                            "closeButton": "a",
-                                            "speedIn": 0,
-                                            "speedOut": 0
-                                          }
-                                        }
-                                      ],
-                                      "false": [
-                                        {
-                                          "id": "b9849411-cd43-4633-a179-2300c0be145b",
-                                          "command": "EVENT_CALL_CUSTOM_EVENT",
-                                          "args": {
-                                            "customEventId": "b8348a66-da79-5f74-b52c-8c2b492027c3",
-                                            "$actor[556aa1b9-f14f-5fc7-b09a-634572df67e9]$": "556aa1b9-f14f-5fc7-b09a-634572df67e9"
-                                          }
-                                        },
-                                        {
-                                          "id": "bcc699c4-d675-4910-876a-c173914c97c7",
-                                          "command": "EVENT_IF",
-                                          "args": {
-                                            "condition": {
-                                              "type": "expression",
-                                              "value": "$3$ > 0 && $5$ > 0"
-                                            }
-                                          },
-                                          "children": {
-                                            "true": [
-                                              {
-                                                "id": "b2f7233b-4986-4779-81ce-bc26213fd97c",
-                                                "command": "EVENT_VARIABLE_MATH",
-                                                "args": {
-                                                  "vectorX": "947",
-                                                  "operation": "sub",
-                                                  "other": "val",
-                                                  "value": 1,
-                                                  "clamp": false
-                                                }
-                                              },
-                                              {
-                                                "id": "25d7a022-c914-4438-88cf-20d14c390e17",
-                                                "command": "EVENT_SET_VALUE",
-                                                "args": {
-                                                  "variable": "18",
-                                                  "value": {
-                                                    "type": "number",
-                                                    "value": 1
-                                                  }
-                                                }
-                                              },
-                                              {
-                                                "id": "66dd1abf-123f-4a5f-a563-f06656d27785",
-                                                "command": "EVENT_SET_VALUE",
-                                                "args": {
-                                                  "variable": "14",
-                                                  "value": {
-                                                    "type": "number",
-                                                    "value": 3
-                                                  }
-                                                }
-                                              },
-                                              {
-                                                "id": "b7590561-07a5-46ee-9ba3-e1967732a4da",
-                                                "command": "EVENT_TEXT",
-                                                "args": {
-                                                  "text": [
-                                                    "USED LEER!"
-                                                  ],
-                                                  "minHeight": 4,
-                                                  "maxHeight": 5,
-                                                  "textHeight": 3,
-                                                  "closeButton": "a",
-                                                  "speedIn": 0,
-                                                  "speedOut": 0
-                                                }
-                                              },
-                                              {
-                                                "id": "744e9118-e8e1-4723-9cdc-763df03bda83",
-                                                "command": "EVENT_CALL_CUSTOM_EVENT",
-                                                "args": {
-                                                  "customEventId": "1df06294-0a9c-5a7a-b652-a7a3646a15fc"
-                                                }
-                                              }
-                                            ],
-                                            "false": []
-                                          }
-                                        },
-                                        {
-                                          "id": "11b60f5c-dd8c-44a4-b8e8-2ad9cc5fd8b4",
-                                          "command": "EVENT_CALL_CUSTOM_EVENT",
-                                          "args": {
-                                            "customEventId": "bc97964c-ec71-55a1-b8f9-6a557e419d5c",
-                                            "$actor[556aa1b9-f14f-5fc7-b09a-634572df67e9]$": "556aa1b9-f14f-5fc7-b09a-634572df67e9"
-                                          }
-                                        }
-                                      ]
                                     }
                                   }
                                 ],
-                                "false": [
+                                "false": []
+                              }
+                            },
+                            {
+                              "id": "125527f8-d960-437d-8b02-769b22a18f39",
+                              "command": "EVENT_TEXT",
+                              "args": {
+                                "text": [
+                                  "DEPOSITED\nIN THE PC BOX."
+                                ],
+                                "minHeight": 4,
+                                "maxHeight": 5,
+                                "textHeight": 3,
+                                "closeButton": "a",
+                                "speedIn": 0,
+                                "speedOut": 0
+                              }
+                            }
+                          ],
+                          "false": [
+                            {
+                              "id": "0593e4dd-ab53-471a-9635-d157d9e4f7a9",
+                              "command": "EVENT_TEXT",
+                              "args": {
+                                "text": [
+                                  "KEEP ONE POKEMON\nIN YOUR PARTY."
+                                ],
+                                "minHeight": 4,
+                                "maxHeight": 5,
+                                "textHeight": 3,
+                                "closeButton": "a",
+                                "speedIn": 0,
+                                "speedOut": 0
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    "false": [
+                      {
+                        "id": "cf772a53-4915-4308-a65b-3d4d84105184",
+                        "command": "EVENT_IF",
+                        "args": {
+                          "condition": {
+                            "type": "lt",
+                            "valueA": {
+                              "type": "variable",
+                              "value": "25"
+                            },
+                            "valueB": {
+                              "type": "number",
+                              "value": 6
+                            }
+                          }
+                        },
+                        "children": {
+                          "true": [
+                            {
+                              "id": "dcc39ae4-23f6-427d-9ace-2420ae5c6596",
+                              "command": "EVENT_SET_VALUE",
+                              "args": {
+                                "variable": "1132",
+                                "value": {
+                                  "type": "number",
+                                  "value": 1
+                                }
+                              }
+                            },
+                            {
+                              "id": "2dbcd2ea-22f8-4b0d-a6e4-05901c2308c2",
+                              "command": "EVENT_VARIABLE_MATH",
+                              "args": {
+                                "vectorX": "25",
+                                "operation": "add",
+                                "other": "val",
+                                "value": 1,
+                                "clamp": false
+                              }
+                            },
+                            {
+                              "id": "5c5b3ff5-2c0d-45d7-a175-f8f18b5f2ff4",
+                              "command": "EVENT_TEXT",
+                              "args": {
+                                "text": [
+                                  "WITHDREW\nPOKEMON."
+                                ],
+                                "minHeight": 4,
+                                "maxHeight": 5,
+                                "textHeight": 3,
+                                "closeButton": "a",
+                                "speedIn": 0,
+                                "speedOut": 0
+                              }
+                            }
+                          ],
+                          "false": [
+                            {
+                              "id": "e73c3030-fb09-45a2-938d-39449d576073",
+                              "command": "EVENT_TEXT",
+                              "args": {
+                                "text": [
+                                  "PARTY IS FULL.\nDEPOSIT ONE\nFIRST."
+                                ],
+                                "minHeight": 4,
+                                "maxHeight": 5,
+                                "textHeight": 3,
+                                "closeButton": "a",
+                                "speedIn": 0,
+                                "speedOut": 0
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "false": []
+      }
+    },
+    {
+      "id": "02b94ad9-1020-4b95-bd5e-0750d4226067",
+      "command": "EVENT_IF",
+      "args": {
+        "condition": {
+          "type": "eq",
+          "valueA": {
+            "type": "variable",
+            "value": "132"
+          },
+          "valueB": {
+            "type": "number",
+            "value": 83
+          }
+        }
+      },
+      "children": {
+        "true": [
+          {
+            "id": "9452f206-2077-42c8-a6f0-5a6dd718713f",
+            "command": "EVENT_IF",
+            "args": {
+              "condition": {
+                "type": "expression",
+                "value": "$1140$ == 0 || $1149$ == 1"
+              }
+            },
+            "children": {
+              "true": [
+                {
+                  "id": "90b5dd41-6bf1-4771-b797-6f3b8864d0f5",
+                  "command": "EVENT_TEXT",
+                  "args": {
+                    "text": [
+                      "NO POKEMON OF\nTHIS SPECIES IN\nYOUR COLLECTION."
+                    ],
+                    "minHeight": 4,
+                    "maxHeight": 5,
+                    "textHeight": 3,
+                    "closeButton": "a",
+                    "speedIn": 0,
+                    "speedOut": 0
+                  }
+                }
+              ],
+              "false": [
+                {
+                  "id": "4bcd16b3-2e55-4f1d-ba2d-f46348530d25",
+                  "command": "EVENT_IF",
+                  "args": {
+                    "condition": {
+                      "type": "eq",
+                      "valueA": {
+                        "type": "variable",
+                        "value": "1142"
+                      },
+                      "valueB": {
+                        "type": "number",
+                        "value": 1
+                      }
+                    }
+                  },
+                  "children": {
+                    "true": [
+                      {
+                        "id": "ce85bcda-4fa0-4e5b-83c9-e0d6926e1607",
+                        "command": "EVENT_IF",
+                        "args": {
+                          "condition": {
+                            "type": "gt",
+                            "valueA": {
+                              "type": "variable",
+                              "value": "25"
+                            },
+                            "valueB": {
+                              "type": "number",
+                              "value": 1
+                            }
+                          }
+                        },
+                        "children": {
+                          "true": [
+                            {
+                              "id": "451f3c57-0b68-49b7-8b9f-b3a1db08074d",
+                              "command": "EVENT_SET_VALUE",
+                              "args": {
+                                "variable": "1142",
+                                "value": {
+                                  "type": "number",
+                                  "value": 0
+                                }
+                              }
+                            },
+                            {
+                              "id": "b42c21b4-b96e-4016-bc32-9626b5db65b5",
+                              "command": "EVENT_VARIABLE_MATH",
+                              "args": {
+                                "vectorX": "25",
+                                "operation": "sub",
+                                "other": "val",
+                                "value": 1,
+                                "clamp": false
+                              }
+                            },
+                            {
+                              "id": "8a178267-a276-4b8c-a72c-504d3de80975",
+                              "command": "EVENT_IF",
+                              "args": {
+                                "condition": {
+                                  "type": "eq",
+                                  "valueA": {
+                                    "type": "variable",
+                                    "value": "1"
+                                  },
+                                  "valueB": {
+                                    "type": "number",
+                                    "value": 83
+                                  }
+                                }
+                              },
+                              "children": {
+                                "true": [
                                   {
-                                    "id": "1730bc2d-5538-4507-8e2f-044df865a8ee",
-                                    "command": "EVENT_IF",
+                                    "id": "29187444-aa44-44cb-9ba1-c54ec440b3d1",
+                                    "command": "EVENT_SET_VALUE",
                                     "args": {
-                                      "condition": {
-                                        "type": "eq",
-                                        "valueA": {
-                                          "type": "variable",
-                                          "value": "14"
-                                        },
-                                        "valueB": {
-                                          "type": "number",
-                                          "value": 4
-                                        }
+                                      "variable": "1",
+                                      "value": {
+                                        "type": "number",
+                                        "value": 0
                                       }
-                                    },
-                                    "children": {
-                                      "true": [
-                                        {
-                                          "id": "bc13cfed-3f1b-404a-9a59-6f117eb51c2e",
-                                          "command": "EVENT_IF",
-                                          "args": {
-                                            "condition": {
-                                              "type": "lte",
-                                              "valueA": {
-                                                "type": "variable",
-                                                "value": "948"
-                                              },
-                                              "valueB": {
-                                                "type": "number",
-                                                "value": 0
-                                              }
-                                            }
-                                          },
-                                          "children": {
-                                            "true": [
-                                              {
-                                                "id": "502b3403-10dc-4eeb-8917-c6b8be0fe0d7",
-                                                "command": "EVENT_TEXT",
-                                                "args": {
-                                                  "text": [
-                                                    "NO PP LEFT\nFOR THAT MOVE."
-                                                  ],
-                                                  "minHeight": 4,
-                                                  "maxHeight": 5,
-                                                  "textHeight": 3,
-                                                  "closeButton": "a",
-                                                  "speedIn": 0,
-                                                  "speedOut": 0
-                                                }
-                                              }
-                                            ],
-                                            "false": [
-                                              {
-                                                "id": "0d9d6098-bdbf-4460-9ebe-3afda6125fe1",
-                                                "command": "EVENT_CALL_CUSTOM_EVENT",
-                                                "args": {
-                                                  "customEventId": "b8348a66-da79-5f74-b52c-8c2b492027c3",
-                                                  "$actor[556aa1b9-f14f-5fc7-b09a-634572df67e9]$": "556aa1b9-f14f-5fc7-b09a-634572df67e9"
-                                                }
-                                              },
-                                              {
-                                                "id": "f40cedff-77d1-42c3-8efd-feefc733007e",
-                                                "command": "EVENT_IF",
-                                                "args": {
-                                                  "condition": {
-                                                    "type": "expression",
-                                                    "value": "$3$ > 0 && $5$ > 0"
-                                                  }
-                                                },
-                                                "children": {
-                                                  "true": [
-                                                    {
-                                                      "id": "b002e3f8-843c-412d-b379-b541c55f1b70",
-                                                      "command": "EVENT_VARIABLE_MATH",
-                                                      "args": {
-                                                        "vectorX": "948",
-                                                        "operation": "sub",
-                                                        "other": "val",
-                                                        "value": 1,
-                                                        "clamp": false
-                                                      }
-                                                    },
-                                                    {
-                                                      "id": "bf4542ce-4016-4035-8c63-c6de71cac222",
-                                                      "command": "EVENT_SET_VALUE",
-                                                      "args": {
-                                                        "variable": "18",
-                                                        "value": {
-                                                          "type": "number",
-                                                          "value": 1
-                                                        }
-                                                      }
-                                                    },
-                                                    {
-                                                      "id": "aeb4e1e4-4db6-4842-a580-e2a594aad014",
-                                                      "command": "EVENT_SET_VALUE",
-                                                      "args": {
-                                                        "variable": "14",
-                                                        "value": {
-                                                          "type": "number",
-                                                          "value": 4
-                                                        }
-                                                      }
-                                                    },
-                                                    {
-                                                      "id": "470f1a41-e89f-4286-93ad-71e3352e0fa1",
-                                                      "command": "EVENT_TEXT",
-                                                      "args": {
-                                                        "text": [
-                                                          "USED TAKE DOWN!"
-                                                        ],
-                                                        "minHeight": 4,
-                                                        "maxHeight": 5,
-                                                        "textHeight": 3,
-                                                        "closeButton": "a",
-                                                        "speedIn": 0,
-                                                        "speedOut": 0
-                                                      }
-                                                    },
-                                                    {
-                                                      "id": "45a9afed-3647-4836-9893-74961bc5f23d",
-                                                      "command": "EVENT_CALL_CUSTOM_EVENT",
-                                                      "args": {
-                                                        "customEventId": "86127f8c-e517-5241-b354-06da6bbff747",
-                                                        "$actor[9549c80a-acc3-5eaa-baf1-db825336f3d2]$": "9549c80a-acc3-5eaa-baf1-db825336f3d2"
-                                                      }
-                                                    }
-                                                  ],
-                                                  "false": []
-                                                }
-                                              },
-                                              {
-                                                "id": "b8c02096-88a1-45fc-9e43-1ed6ed32fa8b",
-                                                "command": "EVENT_CALL_CUSTOM_EVENT",
-                                                "args": {
-                                                  "customEventId": "bc97964c-ec71-55a1-b8f9-6a557e419d5c",
-                                                  "$actor[556aa1b9-f14f-5fc7-b09a-634572df67e9]$": "556aa1b9-f14f-5fc7-b09a-634572df67e9"
-                                                }
-                                              }
-                                            ]
-                                          }
-                                        }
-                                      ],
-                                      "false": []
                                     }
                                   }
-                                ]
+                                ],
+                                "false": []
+                              }
+                            },
+                            {
+                              "id": "bc402933-575a-4c3d-af36-97dcc8f481bc",
+                              "command": "EVENT_TEXT",
+                              "args": {
+                                "text": [
+                                  "DEPOSITED\nIN THE PC BOX."
+                                ],
+                                "minHeight": 4,
+                                "maxHeight": 5,
+                                "textHeight": 3,
+                                "closeButton": "a",
+                                "speedIn": 0,
+                                "speedOut": 0
+                              }
+                            }
+                          ],
+                          "false": [
+                            {
+                              "id": "ef87f187-a1cd-4d21-ac21-b0a483453802",
+                              "command": "EVENT_TEXT",
+                              "args": {
+                                "text": [
+                                  "KEEP ONE POKEMON\nIN YOUR PARTY."
+                                ],
+                                "minHeight": 4,
+                                "maxHeight": 5,
+                                "textHeight": 3,
+                                "closeButton": "a",
+                                "speedIn": 0,
+                                "speedOut": 0
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    "false": [
+                      {
+                        "id": "f37784c0-58c0-4907-aec3-d91ef2bc6172",
+                        "command": "EVENT_IF",
+                        "args": {
+                          "condition": {
+                            "type": "lt",
+                            "valueA": {
+                              "type": "variable",
+                              "value": "25"
+                            },
+                            "valueB": {
+                              "type": "number",
+                              "value": 6
+                            }
+                          }
+                        },
+                        "children": {
+                          "true": [
+                            {
+                              "id": "690a0499-99f8-47db-84dd-b6ad163fc9b1",
+                              "command": "EVENT_SET_VALUE",
+                              "args": {
+                                "variable": "1142",
+                                "value": {
+                                  "type": "number",
+                                  "value": 1
+                                }
+                              }
+                            },
+                            {
+                              "id": "26b7de8f-8b77-4ed7-9012-df4f2edab9e2",
+                              "command": "EVENT_VARIABLE_MATH",
+                              "args": {
+                                "vectorX": "25",
+                                "operation": "add",
+                                "other": "val",
+                                "value": 1,
+                                "clamp": false
+                              }
+                            },
+                            {
+                              "id": "e3a891df-e295-4df2-9440-81ed20465e31",
+                              "command": "EVENT_TEXT",
+                              "args": {
+                                "text": [
+                                  "WITHDREW\nPOKEMON."
+                                ],
+                                "minHeight": 4,
+                                "maxHeight": 5,
+                                "textHeight": 3,
+                                "closeButton": "a",
+                                "speedIn": 0,
+                                "speedOut": 0
+                              }
+                            }
+                          ],
+                          "false": [
+                            {
+                              "id": "5a8523fc-4887-4a21-b3a4-497751be406a",
+                              "command": "EVENT_TEXT",
+                              "args": {
+                                "text": [
+                                  "PARTY IS FULL.\nDEPOSIT ONE\nFIRST."
+                                ],
+                                "minHeight": 4,
+                                "maxHeight": 5,
+                                "textHeight": 3,
+                                "closeButton": "a",
+                                "speedIn": 0,
+                                "speedOut": 0
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "false": []
+      }
+    },
+    {
+      "id": "0ee9d7eb-0dbb-4481-8537-747366c72b22",
+      "command": "EVENT_IF",
+      "args": {
+        "condition": {
+          "type": "eq",
+          "valueA": {
+            "type": "variable",
+            "value": "132"
+          },
+          "valueB": {
+            "type": "number",
+            "value": 84
+          }
+        }
+      },
+      "children": {
+        "true": [
+          {
+            "id": "09c085c3-0e3c-4dc4-a40c-30d94e10e407",
+            "command": "EVENT_IF",
+            "args": {
+              "condition": {
+                "type": "expression",
+                "value": "$1150$ == 0 || $1159$ == 1"
+              }
+            },
+            "children": {
+              "true": [
+                {
+                  "id": "2a45640b-0bbf-49ba-819f-1ef9213d6ad2",
+                  "command": "EVENT_TEXT",
+                  "args": {
+                    "text": [
+                      "NO POKEMON OF\nTHIS SPECIES IN\nYOUR COLLECTION."
+                    ],
+                    "minHeight": 4,
+                    "maxHeight": 5,
+                    "textHeight": 3,
+                    "closeButton": "a",
+                    "speedIn": 0,
+                    "speedOut": 0
+                  }
+                }
+              ],
+              "false": [
+                {
+                  "id": "ae014c94-51d6-4ad5-8428-e489c4d56294",
+                  "command": "EVENT_IF",
+                  "args": {
+                    "condition": {
+                      "type": "eq",
+                      "valueA": {
+                        "type": "variable",
+                        "value": "1152"
+                      },
+                      "valueB": {
+                        "type": "number",
+                        "value": 1
+                      }
+                    }
+                  },
+                  "children": {
+                    "true": [
+                      {
+                        "id": "063f1872-ab65-4772-8f5a-19da6c0e0484",
+                        "command": "EVENT_IF",
+                        "args": {
+                          "condition": {
+                            "type": "gt",
+                            "valueA": {
+                              "type": "variable",
+                              "value": "25"
+                            },
+                            "valueB": {
+                              "type": "number",
+                              "value": 1
+                            }
+                          }
+                        },
+                        "children": {
+                          "true": [
+                            {
+                              "id": "19c0293f-63b2-4469-8873-c07dfd893cfa",
+                              "command": "EVENT_SET_VALUE",
+                              "args": {
+                                "variable": "1152",
+                                "value": {
+                                  "type": "number",
+                                  "value": 0
+                                }
+                              }
+                            },
+                            {
+                              "id": "46d8a911-daf2-426a-9468-a9b42390c662",
+                              "command": "EVENT_VARIABLE_MATH",
+                              "args": {
+                                "vectorX": "25",
+                                "operation": "sub",
+                                "other": "val",
+                                "value": 1,
+                                "clamp": false
+                              }
+                            },
+                            {
+                              "id": "74f2e798-c3a0-4100-ba4e-b4287914f8e2",
+                              "command": "EVENT_IF",
+                              "args": {
+                                "condition": {
+                                  "type": "eq",
+                                  "valueA": {
+                                    "type": "variable",
+                                    "value": "1"
+                                  },
+                                  "valueB": {
+                                    "type": "number",
+                                    "value": 84
+                                  }
+                                }
+                              },
+                              "children": {
+                                "true": [
+                                  {
+                                    "id": "bb5dff97-ac7e-4a04-9569-ff22e0d1d052",
+                                    "command": "EVENT_SET_VALUE",
+                                    "args": {
+                                      "variable": "1",
+                                      "value": {
+                                        "type": "number",
+                                        "value": 0
+                                      }
+                                    }
+                                  }
+                                ],
+                                "false": []
+                              }
+                            },
+                            {
+                              "id": "846a18b3-315f-45e4-ab89-f2460f921cba",
+                              "command": "EVENT_TEXT",
+                              "args": {
+                                "text": [
+                                  "DEPOSITED\nIN THE PC BOX."
+                                ],
+                                "minHeight": 4,
+                                "maxHeight": 5,
+                                "textHeight": 3,
+                                "closeButton": "a",
+                                "speedIn": 0,
+                                "speedOut": 0
+                              }
+                            }
+                          ],
+                          "false": [
+                            {
+                              "id": "15a9ac28-0bea-4842-92f7-6876e72ae208",
+                              "command": "EVENT_TEXT",
+                              "args": {
+                                "text": [
+                                  "KEEP ONE POKEMON\nIN YOUR PARTY."
+                                ],
+                                "minHeight": 4,
+                                "maxHeight": 5,
+                                "textHeight": 3,
+                                "closeButton": "a",
+                                "speedIn": 0,
+                                "speedOut": 0
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    "false": [
+                      {
+                        "id": "d7cd7926-d424-4eec-8a8b-c7576fbd1a43",
+                        "command": "EVENT_IF",
+                        "args": {
+                          "condition": {
+                            "type": "lt",
+                            "valueA": {
+                              "type": "variable",
+                              "value": "25"
+                            },
+                            "valueB": {
+                              "type": "number",
+                              "value": 6
+                            }
+                          }
+                        },
+                        "children": {
+                          "true": [
+                            {
+                              "id": "4526eb8e-d60c-413b-992a-997df563d3cd",
+                              "command": "EVENT_SET_VALUE",
+                              "args": {
+                                "variable": "1152",
+                                "value": {
+                                  "type": "number",
+                                  "value": 1
+                                }
+                              }
+                            },
+                            {
+                              "id": "f99361f5-e8e7-4cd8-8a93-a110184ff07d",
+                              "command": "EVENT_VARIABLE_MATH",
+                              "args": {
+                                "vectorX": "25",
+                                "operation": "add",
+                                "other": "val",
+                                "value": 1,
+                                "clamp": false
+                              }
+                            },
+                            {
+                              "id": "88b8e457-5700-4c48-8d9d-400fd93ec1b6",
+                              "command": "EVENT_TEXT",
+                              "args": {
+                                "text": [
+                                  "WITHDREW\nPOKEMON."
+                                ],
+                                "minHeight": 4,
+                                "maxHeight": 5,
+                                "textHeight": 3,
+                                "closeButton": "a",
+                                "speedIn": 0,
+                                "speedOut": 0
+                              }
+                            }
+                          ],
+                          "false": [
+                            {
+                              "id": "eb7b0bc5-c57f-42ee-98c0-40a65fd2a24c",
+                              "command": "EVENT_TEXT",
+                              "args": {
+                                "text": [
+                                  "PARTY IS FULL.\nDEPOSIT ONE\nFIRST."
+                                ],
+                                "minHeight": 4,
+                                "maxHeight": 5,
+                                "textHeight": 3,
+                                "closeButton": "a",
+                                "speedIn": 0,
+                                "speedOut": 0
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "false": []
+      }
+    },
+    {
+      "id": "9d72d24d-4f9b-4bb0-ae40-47f691c511e7",
+      "command": "EVENT_IF",
+      "args": {
+        "condition": {
+          "type": "eq",
+          "valueA": {
+            "type": "variable",
+            "value": "132"
+          },
+          "valueB": {
+            "type": "number",
+            "value": 85
+          }
+        }
+      },
+      "children": {
+        "true": [
+          {
+            "id": "6b9c882a-d8aa-4d4e-8c1e-edc4a8b7e248",
+            "command": "EVENT_IF",
+            "args": {
+              "condition": {
+                "type": "expression",
+                "value": "$1160$ == 0 || $1169$ == 1"
+              }
+            },
+            "children": {
+              "true": [
+                {
+                  "id": "7de90e68-4f92-40b8-bd50-a989835dc004",
+                  "command": "EVENT_TEXT",
+                  "args": {
+                    "text": [
+                      "NO POKEMON OF\nTHIS SPECIES IN\nYOUR COLLECTION."
+                    ],
+                    "minHeight": 4,
+                    "maxHeight": 5,
+                    "textHeight": 3,
+                    "closeButton": "a",
+                    "speedIn": 0,
+                    "speedOut": 0
+                  }
+                }
+              ],
+              "false": [
+                {
+                  "id": "f5a7b5e4-0f8b-4ba6-ac0c-9ef553f6547d",
+                  "command": "EVENT_IF",
+                  "args": {
+                    "condition": {
+                      "type": "eq",
+                      "valueA": {
+                        "type": "variable",
+                        "value": "1162"
+                      },
+                      "valueB": {
+                        "type": "number",
+                        "value": 1
+                      }
+                    }
+                  },
+                  "children": {
+                    "true": [
+                      {
+                        "id": "d1c5d74e-5289-472b-9b6d-11e2543ba9da",
+                        "command": "EVENT_IF",
+                        "args": {
+                          "condition": {
+                            "type": "gt",
+                            "valueA": {
+                              "type": "variable",
+                              "value": "25"
+                            },
+                            "valueB": {
+                              "type": "number",
+                              "value": 1
+                            }
+                          }
+                        },
+                        "children": {
+                          "true": [
+                            {
+                              "id": "ddbca8e9-1f38-4838-a5b9-b0d0365e8997",
+                              "command": "EVENT_SET_VALUE",
+                              "args": {
+                                "variable": "1162",
+                                "value": {
+                                  "type": "number",
+                                  "value": 0
+                                }
+                              }
+                            },
+                            {
+                              "id": "942f9f9c-ba34-4d48-b19e-8234d36f81c6",
+                              "command": "EVENT_VARIABLE_MATH",
+                              "args": {
+                                "vectorX": "25",
+                                "operation": "sub",
+                                "other": "val",
+                                "value": 1,
+                                "clamp": false
+                              }
+                            },
+                            {
+                              "id": "97984c89-b690-449d-ba3f-46a4ec83acde",
+                              "command": "EVENT_IF",
+                              "args": {
+                                "condition": {
+                                  "type": "eq",
+                                  "valueA": {
+                                    "type": "variable",
+                                    "value": "1"
+                                  },
+                                  "valueB": {
+                                    "type": "number",
+                                    "value": 85
+                                  }
+                                }
+                              },
+                              "children": {
+                                "true": [
+                                  {
+                                    "id": "69e9c6e0-1bfc-49e0-895d-75dd87e75a94",
+                                    "command": "EVENT_SET_VALUE",
+                                    "args": {
+                                      "variable": "1",
+                                      "value": {
+                                        "type": "number",
+                                        "value": 0
+                                      }
+                                    }
+                                  }
+                                ],
+                                "false": []
+                              }
+                            },
+                            {
+                              "id": "67e12492-7e43-4c37-b84d-863da75fec85",
+                              "command": "EVENT_TEXT",
+                              "args": {
+                                "text": [
+                                  "DEPOSITED\nIN THE PC BOX."
+                                ],
+                                "minHeight": 4,
+                                "maxHeight": 5,
+                                "textHeight": 3,
+                                "closeButton": "a",
+                                "speedIn": 0,
+                                "speedOut": 0
+                              }
+                            }
+                          ],
+                          "false": [
+                            {
+                              "id": "5d063d3a-9d39-4b0c-bf49-1e8319bb893b",
+                              "command": "EVENT_TEXT",
+                              "args": {
+                                "text": [
+                                  "KEEP ONE POKEMON\nIN YOUR PARTY."
+                                ],
+                                "minHeight": 4,
+                                "maxHeight": 5,
+                                "textHeight": 3,
+                                "closeButton": "a",
+                                "speedIn": 0,
+                                "speedOut": 0
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    "false": [
+                      {
+                        "id": "5a132151-c645-4f42-9ad0-0836f69aa717",
+                        "command": "EVENT_IF",
+                        "args": {
+                          "condition": {
+                            "type": "lt",
+                            "valueA": {
+                              "type": "variable",
+                              "value": "25"
+                            },
+                            "valueB": {
+                              "type": "number",
+                              "value": 6
+                            }
+                          }
+                        },
+                        "children": {
+                          "true": [
+                            {
+                              "id": "4e3d5eeb-e8f6-4160-bd82-2ee44038157f",
+                              "command": "EVENT_SET_VALUE",
+                              "args": {
+                                "variable": "1162",
+                                "value": {
+                                  "type": "number",
+                                  "value": 1
+                                }
+                              }
+                            },
+                            {
+                              "id": "77972024-f0a3-4aae-9b4f-8b18d00e9afb",
+                              "command": "EVENT_VARIABLE_MATH",
+                              "args": {
+                                "vectorX": "25",
+                                "operation": "add",
+                                "other": "val",
+                                "value": 1,
+                                "clamp": false
+                              }
+                            },
+                            {
+                              "id": "04391792-6112-43a8-a7d0-b2bb18dcdd89",
+                              "command": "EVENT_TEXT",
+                              "args": {
+                                "text": [
+                                  "WITHDREW\nPOKEMON."
+                                ],
+                                "minHeight": 4,
+                                "maxHeight": 5,
+                                "textHeight": 3,
+                                "closeButton": "a",
+                                "speedIn": 0,
+                                "speedOut": 0
+                              }
+                            }
+                          ],
+                          "false": [
+                            {
+                              "id": "b574b6bd-3bd2-4223-93de-9246729a2751",
+                              "command": "EVENT_TEXT",
+                              "args": {
+                                "text": [
+                                  "PARTY IS FULL.\nDEPOSIT ONE\nFIRST."
+                                ],
+                                "minHeight": 4,
+                                "maxHeight": 5,
+                                "textHeight": 3,
+                                "closeButton": "a",
+                                "speedIn": 0,
+                                "speedOut": 0
                               }
                             }
                           ]

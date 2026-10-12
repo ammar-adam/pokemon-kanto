@@ -8,7 +8,7 @@ export const movePriority=move=>{
 
 // Evolution scratch is idle during a move: 304 holds order, 306 the queued foe move.
 // The completed-turn marker 18=2 prevents the scene from giving the foe a second action.
-export function turnOrderAuthoring({species,IF,EX,V,set,math,rand,shared,enemyMoves}) {
+export function turnOrderAuthoring({species,IF,EX,V,set,math,rand,shared,enemyMoves,playerStatus}) {
   const emitted=new Set();
   const once=(name,create)=>{
     if(emitted.has(name))return shared(name,[]);
@@ -19,7 +19,8 @@ export function turnOrderAuthoring({species,IF,EX,V,set,math,rand,shared,enemyMo
     math(out,'mul',level,'var'),math(out,'div',50),math(out,'add',5)
   ];
   const compare=()=>once('turn_compare_speed',()=>[
-    ...speed(1,0,308),...speed(4,7,309),
+    ...(playerStatus?playerStatus.load():[]),...speed(1,0,308),...speed(4,7,309),
+    ...(playerStatus?[IF(307,'==',1,[math(308,'div',4),IF(308,'<',1,[set(308,1)])])]:[]),
     IF(69,'==',1,[math(309,'div',4),IF(309,'<',1,[set(309,1)])]),
     EX('$308$ < $309$',[set(304,1)],[EX('$308$ == $309$',[rand(304,0,1)])])
   ]);
@@ -34,7 +35,7 @@ export function turnOrderAuthoring({species,IF,EX,V,set,math,rand,shared,enemyMo
   ]);}
   return ({move,events})=>[
     ...before(movePriority(move)),
-    EX('$3$ > 0 && $5$ > 0',events),
+    EX('$3$ > 0 && $5$ > 0',playerStatus?playerStatus.action(events):events),
     ...once('turn_after_player',()=>[IF(304,'==',0,enemy()),set(18,2)])
   ];
 }

@@ -308,7 +308,7 @@ test('Wild escape succeeds, trainer escape fails, and unsupported complex moves 
 
 test('All 165 moves author without PP/turn writes, and power-zero moves never become formula attacks', () => {
   const f = fixture();
-  const allowed = new Set([0, 2, 3, 5, 13, 15, 16, 17, 19, 28, 29, 68, 69, 135, 300, 301, 302, 303, 307, 308, 309, 310]);
+  const allowed = new Set([0, 2, 3, 5, 13, 15, 16, 17, 19, 28, 29, 68, 69, 135, 300, 301, 302, 303, 305, 307, 308, 309, 310]);
   for (const [move, stats] of Object.entries(catalog)) {
     const invokes = [];
     function audit(events) {

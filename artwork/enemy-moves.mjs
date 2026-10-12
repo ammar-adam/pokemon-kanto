@@ -1,3 +1,4 @@
+import {isHighCriticalMove} from './critical-hits.mjs';
 import {moveStats} from './battle-damage.mjs';
 import {indexedDispatch} from './indexed-dispatch.mjs';
 
@@ -107,7 +108,7 @@ export function enemyBattleStateAuthoring({EX, set, math, say, state = 136}) {
  */
 export function enemyMoveAuthoring({species, getMoves, moveTiers, IF, EX, V, set, math,
   rand, say, shared, chunked, typeCode, damage, effectiveness, storeHP,
-  invoke, sfx, fx, statusEffects = {}, damageModifiers = () => []}) {
+  invoke, sfx, fx, critical, statusEffects = {}, damageModifiers = () => []}) {
   if (!getMoves && !moveTiers) throw new Error('Enemy move authoring requires getMoves or moveTiers');
   const catalog = new Map();
   const register = authored => {
@@ -163,14 +164,18 @@ export function enemyMoveAuthoring({species, getMoves, moveTiers, IF, EX, V, set
         : [...damage.base(4, 1, 7, 0)];
     // Fixed-damage moves use type immunity, but do not receive type multipliers.
     if (fixed || half) {
+      if(critical) events.unshift(...critical.clear());
       events.push(set(135, V(16)), ...effectiveness(4, 1), IF(16, '>', 0, [set(16, V(135))]));
-    } else events.push(...damageModifiers(), ...effectiveness(4, 1), rand(15, 217, 255), ...damage.variance());
+    } else {
+      if(critical)events.unshift(...critical.roll(4,isHighCriticalMove(move.name)));
+      events.push(...(critical?[IF(critical.flag,'!=',1,damageModifiers())]:damageModifiers()),...effectiveness(4,1),...(critical?[EX('$305$ == 1 && $16$ > 0',[say('A CRITICAL HIT!')])]:[]),rand(15,217,255),...damage.variance());
+    }
     // Only a positive, non-immune hit can receive the post-reduction floor.
     const reductions = !fixed && !half && !specialTypes.has(move.type)
       ? [IF(29, '==', 1, [math(16, 'mul', 2), math(16, 'div', 3)])] : [];
     reductions.push(IF(17, '==', 1, [math(16, 'div', 2), set(17, 0)]),
       IF(16, '==', 0, [set(16, 1)]));
-    events.push(IF(16, '>', 0, reductions),
+    events.push(IF(16, '>', 0, critical?[IF(critical.flag,'!=',1,reductions)]:reductions),
       EX('$16$ > $3$', [set(16, V(3))]), math(3, 'sub', 16, 'var'),
       IF(3, '<', 0, [set(3, 0)]), ...storeHP(), sfx(2), fx('partner'), invoke('hud'));
     if (move.effect === 'DRAIN_HP_EFFECT') events.push(IF(16, '>', 0, [

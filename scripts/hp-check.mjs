@@ -90,7 +90,7 @@ class Logic{
         assert.ok(actors.has(a.actorId));
         this.body(plan.scripts.find(s=>s.target.actorId===a.actorId).events);break;
       }
-      case 'EVENT_KANTO_MENU':case 'EVENT_MENU':assert.ok(this.choices.length,'menu choice supplied');this.put(a.variable,this.choices.shift());break;
+      case 'EVENT_KANTO_PARTY_MENU':case 'EVENT_KANTO_MOVE_MENU':case 'EVENT_KANTO_MENU':case 'EVENT_MENU':assert.ok(this.choices.length,'menu choice supplied');this.put(a.variable,this.choices.shift());break;
       case 'EVENT_GOTO_LABEL':throw new Halt('goto',a.label);
       case 'EVENT_SWITCH_SCENE':throw new Halt('switch',a);
       case 'EVENT_SCENE_POP_STATE':throw new Halt('pop',a);
@@ -166,8 +166,8 @@ test('Field and battle switches load the target species maximum without free hea
   const source=partner(4,5),target=dexId(113),s=slots(target-1),maximum=reference(113,50);
   const choices=[...Array(Math.floor((target-1)/7)).fill(8),(target-1)%7+1];
   const vars={...source,[s.own]:1,[s.member]:1,[s.level]:50,[s.hp]:maximum-20,25:2};
-  for(const events of [named('PARTY'),shared('party_view')]){
-    const l=new Logic({...vars,132:target},choices);l.run(events);
+  for(const [events,selection] of [[named('PARTY'),[2]],[shared('party_view'),choices]]){
+    const l=new Logic({...vars,132:target},selection);l.run(events);
     assert.equal(l.get(1),target);assert.equal(l.get(2),maximum);assert.equal(l.get(3),maximum-20);
     assert.equal(l.get(s.hp),maximum-20);assert.equal(l.get(slots(dexId(4)-1).hp),reference(4,5));
   }

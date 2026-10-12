@@ -1,12 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { moveStats as originalMoveStats } from './battle-damage.mjs';
+import {storedMoveLearningAuthoring} from './stored-moves.mjs';
 
 const snapshot = JSON.parse(readFileSync(new URL('./red-learnsets.json', import.meta.url), 'utf8'));
 export const redLearnsets = snapshot.species;
 export const learnsetCommit = snapshot.commit;
 export const moveLearningPolicy = Object.freeze({
   replacement: 'Automatically retain the latest four distinct learned moves; no manual forgetting or refusal.',
-  evolution: 'Recompute from the current species and level; inherited moves and evolution timing are not persisted.',
+  evolution: 'Native move words preserve inherited move identities and remaining PP; later level-up moves append to those stored slots.',
   effects: 'Original learnsets and PP do not imply exact status, fixed-damage, multi-turn, or other battle effects.',
 });
 
@@ -81,8 +82,9 @@ export function ppAtLevel(dex, level, stats = originalMoveStats) {
  */
 export function moveLearningAuthoring({
   species, IF, EX, V, set, math, menu: makeMenu, say, shared, lv, pp,
-  moveStats = originalMoveStats, onMove, onStruggle, onTurn=({events})=>events,
+  moveStats = originalMoveStats, onMove, onStruggle, onTurn=({events})=>events, retired,
 }) {
+  if(retired)return storedMoveLearningAuthoring({species,IF,EX,V,set,math,menu:makeMenu,say,shared,lv,pp,retired,movesAtLevel,redLearnsets,onMove,onStruggle,onTurn});
   const emitted = new Set();
   const key = move => move.toLowerCase().replace(/[^a-z]/g, '');
   const once = (name, events) => {

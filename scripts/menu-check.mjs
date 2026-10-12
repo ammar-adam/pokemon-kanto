@@ -12,22 +12,26 @@ assert.equal(sha(fs.readFileSync(path.join(root,'plugins/kanto-menu/events/event
 assert.equal(provenance.gbStudioCommit,'ccb891b2670134ba8237416772eea4ed09d34e1e');
 const baseline=JSON.parse(fs.readFileSync(path.join(root,'plugins/kanto-menu/upstream/menu-routing-baseline.json')));
 const original=new Map(baseline.map(x=>[x.id,x]));
-const menus=[];
+const menus=[],storedMenus=[];
 function walk(v) {
  if(Array.isArray(v)) {for(const x of v)walk(x);}
- else if(v&&typeof v==='object') {if(['EVENT_MENU','EVENT_KANTO_MENU'].includes(v.command))menus.push(v);for(const x of Object.values(v))walk(x);}
+ else if(v&&typeof v==='object') {if(['EVENT_MENU','EVENT_KANTO_MENU'].includes(v.command))menus.push(v);if(v.command==='EVENT_KANTO_MOVE_MENU')storedMenus.push(v);for(const x of Object.values(v))walk(x);}
 }
 for(const p of fs.readdirSync(path.join(root,'project'),{recursive:true})) if(p.endsWith('.gbsres'))walk(JSON.parse(fs.readFileSync(path.join(root,'project',p))));
-assert.equal(menus.length,1014);let scoped=0,dialogue=0;
+assert.equal(menus.length,129);assert.equal(storedMenus.length,151,'one stored-move menu per species');
+const storedNative=new Map(storedMenus.map(m=>[m.id,m]));assert.equal(storedNative.size,151,'unique stored-menu IDs');
+for(const [index,m]of storedMenus.entries()){assert.equal(m.args.variable,'14');const words=Array.from({length:4},(_,slot)=>m.args['word'+(slot+1)]);assert.equal(new Set(words).size,4);for(const word of words)assert.match(word,/^\d+$/);}
+let scoped=0,dialogue=0;
 for(const m of menus) {
  const old=original.get(m.id);assert.ok(old,'menu ID preserved');assert.deepEqual(m.args,old.args,'all native arguments preserved');
  assert.equal(m.command,m.args.layout==='menu'?'EVENT_KANTO_MENU':'EVENT_MENU');
  if(m.command==='EVENT_KANTO_MENU') {scoped++;for(let i=1;i<=m.args.items;i++)assert.ok(m.args['option'+i].length<=17,'label fits full-width 17-character interior');}
  else dialogue++;
 }
-assert.equal(scoped,26);assert.equal(dialogue,988);
-const native=new Map(menus.map(m=>[m.id,m]));menus.length=0;walk(JSON.parse(fs.readFileSync(path.join(root,'artwork/game-plan.json'))));
-assert.equal(menus.length,1014);for(const m of menus){const n=native.get(m.id);assert.equal(m.command,n.command);assert.deepEqual(m.args,n.args);}
+assert.equal(scoped,26);assert.equal(dialogue,103);
+const native=new Map(menus.map(m=>[m.id,m]));menus.length=0;storedMenus.length=0;walk(JSON.parse(fs.readFileSync(path.join(root,'artwork/game-plan.json'))));
+assert.equal(menus.length,129);for(const m of menus){const n=native.get(m.id);assert.equal(m.command,n.command);assert.deepEqual(m.args,n.args);}
+assert.equal(storedMenus.length,151);for(const m of storedMenus){const n=storedNative.get(m.id);assert.ok(n,'native stored-menu owner');assert.deepEqual(m.args,n.args,'stored slots match authored plan');}
 const context={module:{exports:{}},require:specifier=>{assert.equal(specifier,'../helpers/l10n');return {default:key=>key};}};
 vm.runInNewContext(fs.readFileSync(path.join(root,'plugins/kanto-menu/events/eventKantoMenu.js'),'utf8'),context);const event=context.module.exports;assert.equal(event.id,'EVENT_KANTO_MENU');
 function calls(input,indirect=false) {
@@ -47,4 +51,4 @@ for(let items=2;items<=8;items++)for(const cancelOnB of [false,true])for(const c
  const expectedFlags=[];if(cancelOnLastOption)expectedFlags.push('.UI_MENU_LAST_0');if(cancelOnB)expectedFlags.push('.UI_MENU_CANCEL_B');assert.deepEqual(c.find(x=>x[0]==='_choice'),['_choice','LOCAL_RESULT',expectedFlags,items]);
  assert.deepEqual(c.at(-2),['_setInd','VAR_V0','LOCAL_RESULT']);matrix++;
 }
-console.log(`Menu source checks passed: ${scoped} scoped full-width menus, ${dialogue} unchanged native dialogue menus, ${matrix} indirect/cancel cases. Runtime verification is separate.`);
+console.log(`Menu source checks passed: ${scoped} scoped full-width menus, ${dialogue} unchanged native dialogue menus, ${matrix} indirect/cancel cases, ${storedNative.size} native/source stored-move menus. Runtime verification is separate.`);
