@@ -242,6 +242,24 @@ test('Trainer, rival and Youngster HP use species stats instead of authored HP t
     assert.equal(l.get(6),reference(roster[l.get(4)-1].dex,l.get(7)));assert.equal(l.get(5),l.get(6));
   }
 });
+test('Scripted legendary and Snorlax encounters use species HP',()=>{
+  for(const [name,dex,level] of [['Snorlax',143,30],['ZAPDOS',145,50],['ARTICUNO',144,50],['MOLTRES',146,50],['MEWTWO',150,70]]){
+    const l=new Logic({196:1,220:1},[1]); l.run(named(name));
+    assert.equal(l.get(4),dexId(dex),name);
+    assert.equal(l.get(6),reference(dex,level),name); assert.equal(l.get(5),l.get(6));
+  }
+});
+test('All 151 selector entries and cancellation work across every page',()=>{
+  for(let id=1;id<=151;id++){
+    const choices=[...Array(Math.floor((id-1)/7)).fill(8),(id-1)%7+1];
+    const l=new Logic({},choices); l.run(shared('species_menu'));
+    assert.equal(l.get(132),id,'selector ID '+id); assert.equal(l.choices.length,0);
+  }
+  for(let page=0;page<22;page++){
+    const l=new Logic({132:151},[...Array(page).fill(8),0]); l.run(shared('species_menu'));
+    assert.equal(l.get(132),0,'cancel page '+page);
+  }
+});
 test('HP authoring adds no variable slots',()=>{
   // Named metadata includes unused slots; memory-check verifies the referenced budget.
   assert.equal(plan.variables.length,1688);

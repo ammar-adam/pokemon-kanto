@@ -21,7 +21,7 @@ export function playerMoveEffects({IF,EX,V,set,math,rand,say,invoke,storeHP,effe
     else if(effect==='SWITCH_AND_TELEPORT_EFFECT')events=[IF(19,'==',0,[say('THE BATTLE ENDED.'),...pop()],fail())];
     else if(effect==='HEAL_EFFECT')events=[EX('$3$ < $2$',[set(16,V(2)),...(key==='rest'?[]:[math(16,'div',2)]),...heal(),say('HP WAS RESTORED!')],fail())];
     else if(effect==='LEECH_SEED_EFFECT')events=[set(28,1),say('THE FOE WAS\nSEEDED!')];
-    else if(effect==='PARALYZE_EFFECT')events=[set(69,1),say('THE FOE WAS\nPARALYZED!')];
+    else if(effect==='PARALYZE_EFFECT')events=[EX('$69$ != 0 || $302$ != 0 || $303$ != 0',fail(),[set(300,typeCode(stats.type)),set(16,1),...effectiveness(1,4),IF(16,'>',0,[set(69,1),say('THE FOE WAS\nPARALYZED!')],[say('IT HAS NO EFFECT!')]),set(16,0)])];
     else if(effect==='SLEEP_EFFECT')events=[set(302,2),say('THE FOE FELL\nASLEEP!')];
     else if(effect==='POISON_EFFECT')events=[set(303,1),say('THE FOE WAS\nPOISONED!')];
     else if(effect==='ATTACK_DOWN1_EFFECT')events=[set(29,1),say('FOE ATTACK FELL!')];

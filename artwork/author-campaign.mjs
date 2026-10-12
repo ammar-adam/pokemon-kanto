@@ -67,7 +67,7 @@ function landscape(spec){
   const m=new Region(32,32);border(m);m.area(14,3,4,26,'path',1);m.area(2,15,28,3,'path',1);
   for(const [x,y,w,h]of [[4,5,8,7],[20,5,8,7],[4,19,8,9],[20,19,8,9]])m.area(x,y,w,h,'grass',0);
   if(spec.kind==='forest'){for(const [x,y]of [[8,8],[22,8],[8,22],[24,24],[4,19],[20,18]])m.tree(x,y);}
-  if(spec.kind==='bridge'){m.area(1,3,12,26,'water',3,15);m.area(19,3,12,26,'water',3,15);m.area(14,3,4,26,'floor',2);for(let y=3;y<29;y+=2){m.cell(13,y,'stone',2,0,15);m.cell(18,y,'stone',2,0,15);}m.area(3,25,8,3,'grass',0,0);m.area(20,25,8,3,'grass',0,0);}
+  if(spec.kind==='bridge'){m.area(1,3,12,26,'water',3,15);m.area(19,3,12,26,'water',3,15);m.area(14,3,4,26,'floor',2);for(let y=3;y<29;y+=2){m.cell(13,y,'stone',2,0,15);m.cell(18,y,'stone',2,0,15);}m.area(3,25,8,3,'grass',0,0);m.area(20,25,8,3,'grass',0,0);m.area(11,25,3,3,'floor',2,0);m.area(18,25,2,3,'floor',2,0);}
   if(['route_nineteen','route_twenty_one'].includes(spec.key)){
     m.area(2,3,28,26,'water',3,0);
     m.area(4,9,6,5,'path',1,0);m.area(22,21,6,5,'path',1,0);

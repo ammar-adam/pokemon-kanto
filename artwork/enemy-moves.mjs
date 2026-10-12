@@ -167,7 +167,7 @@ export function enemyMoveAuthoring({species, getMoves, moveTiers, IF, EX, V, set
     } else events.push(...damageModifiers(), ...effectiveness(4, 1), rand(15, 217, 255), ...damage.variance());
     // Only a positive, non-immune hit can receive the post-reduction floor.
     const reductions = !fixed && !half && !specialTypes.has(move.type)
-      ? [IF(29, '==', 1, [math(16, 'div', 2)])] : [];
+      ? [IF(29, '==', 1, [math(16, 'mul', 2), math(16, 'div', 3)])] : [];
     reductions.push(IF(17, '==', 1, [math(16, 'div', 2), set(17, 0)]),
       IF(16, '==', 0, [set(16, 1)]));
     events.push(IF(16, '>', 0, reductions),

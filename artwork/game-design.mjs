@@ -18,6 +18,7 @@ import { turnOrderAuthoring } from './turn-order.mjs';
 import { captureAuthoring } from './capture-rules.mjs';
 import { storyJournal } from './story-journal.mjs';
 import { sceneCompilerReferences } from './compiler-references.mjs';
+import {alignEncounterTerrain} from './native-terrain.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ids = JSON.parse(await readFile(path.join(root,'artwork/pokemon-resource-ids.json'),'utf8'));
@@ -196,7 +197,7 @@ function effectiveness(attacker,defender,message=false){return [
   ...chunked('chart',Object.entries(typeChart).map(([type,groups])=>IF(308,'==',typeCode(type),groups.flatMap((group,g)=>group.flatMap(target=>[309,310].map(variable=>IF(variable,'==',typeCode(target),g===2?[set(16,0)]:g===0?[math(16,'mul',2)]:[IF(16,'>',0,[math(16,'div',2),IF(16,'==',0,[set(16,1)])])]))))))),
   ...(message?[IF(16,'==',0,[say('IT HAS NO EFFECT!')])]:[])
 ];}
-script('battlefield','attack',[IF(300,'==',0,[set(300,1)]),IF(301,'<=',0,[set(301,40)]),...damage.base(1,4,0,7),...stages.playerDamage(),...effectiveness(1,4,true),rand(15,1,16),IF(15,'==',1,[math(16,'mul',2),say('A CRITICAL HIT!')]),rand(15,217,255),...damage.variance(),math(5,'sub',16,'var'),IF(5,'<',0,[set(5,0)]),sfx(3),fx('enemy'),invoke('hud')]);
+script('battlefield','attack',[IF(300,'==',0,[set(300,1)]),IF(301,'<=',0,[set(301,40)]),...damage.base(1,4,0,7),...stages.playerDamage(),...effectiveness(1,4,true),rand(15,1,16),EX('$15$ == 1 && $16$ > 0',[math(16,'mul',2),say('A CRITICAL HIT!')]),rand(15,217,255),...damage.variance(),math(5,'sub',16,'var'),IF(5,'<',0,[set(5,0)]),sfx(3),fx('enemy'),invoke('hud')]);
 
 const enemyMoves=enemyMoveAuthoring({species,getMoves:(p,level)=>movesAtLevel(p.dex,level),IF,EX,V,set,math,rand,say,shared,chunked,typeCode,damage,effectiveness,storeHP,invoke,sfx,fx,
   statusEffects:{...stages.statusEffects,SWITCH_AND_TELEPORT_EFFECT:()=>[IF(19,'==',0,[say('THE FOE FLED!'),...pop()],[say('BUT IT FAILED!')])]},damageModifiers:stages.enemyDamage
@@ -465,6 +466,7 @@ for(const s of plan.scripts)walkEvents(s.events,e=>{
     e.args.text=Array.isArray(e.args.text)?e.args.text.map(fix):fix(e.args.text);
   }
 });
+alignEncounterTerrain(plan,ids,root);
 const entities=[...plan.actors,...plan.triggers];
 for(const {root,references} of sceneCompilerReferences(plan)){
   root.events.unshift(E('EVENT_GBVM_SCRIPT',{script:'',references}));

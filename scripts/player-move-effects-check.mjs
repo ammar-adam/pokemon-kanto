@@ -333,6 +333,18 @@ test('All 165 moves author without PP/turn writes, and power-zero moves never be
   assert.ok(!depleted.invocations.includes('attack'));
 });
 
+test('Thunder Wave respects Ground immunity and existing primary status', () => {
+  const ground=fixture({targetTypes:['GROUND']}).run('THUNDER WAVE');
+  assert.equal(ground.get(69),0); assert.equal(ground.get(5),100);
+  assert.ok(ground.text.includes('IT HAS NO EFFECT!'));
+  const normal=fixture().run('THUNDER WAVE');
+  assert.equal(normal.get(69),1); assert.equal(normal.get(16),0);
+  for(const status of [69,302,303]) {
+    const blocked=fixture().run('THUNDER WAVE',{initial:{[status]:1}});
+    assert.equal(blocked.get(69),status===69?1:0);
+    assert.equal(blocked.get(status),1); assert.ok(blocked.text.includes('BUT IT FAILED!'));
+  }
+});
 const failed = tests.filter(row => !row.pass);
 console.log(`${tests.length - failed.length}/${tests.length} player effect source groups passed.`);
 if (failed.length) process.exitCode = 1;

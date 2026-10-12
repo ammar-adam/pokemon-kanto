@@ -70,7 +70,7 @@ for(const f of resources(path.join(root,'project'))) {
     if(!value || typeof value!=='object') return;
     if(value.command==='EVENT_TEXT_DRAW' && value.args.location==='background') {
       draws++;
-      assert.ok(f.includes('/scenes/battlefield/') || /script_kanto_(identity_[14]_\d+|logic_hud)\.gbsres$/.test(f),
+      assert.ok(f.replaceAll('\\','/').includes('/scenes/battlefield/') || /script_kanto_(identity_[14]_\d+|logic_hud)\.gbsres$/.test(f),
         'new background text owner requires an explicit tile-allocation audit: '+f);
       assert.ok(!/!F:/.test(value.args.text),'HUD does not switch away from the guarded font');
     }

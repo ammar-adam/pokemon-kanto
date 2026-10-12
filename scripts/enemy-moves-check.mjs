@@ -182,6 +182,13 @@ test('Guard reduces a landed hit and persists HP; a miss leaves guard available'
   assert.equal(f.run({17: 1}, [96]).get(17), 1);
 });
 
+test('Player Growl uses the same two-thirds physical reduction as enemy Growl', () => {
+  const f=fixture({getMoves:()=>['SCRATCH']});
+  const normal=f.run({},[255]); const dropped=f.run({29:1},[255]);
+  assert.equal(dropped.get(16),Math.max(1,Math.trunc(normal.get(16)*2/3)));
+  const special=fixture({getMoves:()=>['EMBER']});
+  assert.equal(special.run({29:1},[255]).get(16),special.run({},[255]).get(16));
+});
 test('One-point hits survive attack drop and guard independently or together, while immunity stays zero', () => {
   const species = [roster.find(p => p.dex === 4), roster.find(p => p.dex === 92)];
   const f = fixture({species});

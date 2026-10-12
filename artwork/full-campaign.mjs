@@ -23,9 +23,9 @@ export function travelMenu({IF,say,menu,switchScene}){
   ])];
 }
 export function authorFullCampaign(h){
-  const {actor,trainer,enter,trigger,IF,EX,say,menu,set,math,V,startBattle,switchScene,heal,loadHP,storage,evolve,registerPokemon,save,plan,ids,script,sfx}=h;
+  const {actor,trainer,enter,trigger,IF,EX,say,menu,set,math,V,startBattle,switchScene,heal,loadHP,storage,evolve,registerPokemon,save,plan,ids,script,sfx,maxHPEvents}=h;
   const guard=(variable,message)=>({variable,value:1,message});
-  const wild=(dex,level)=>[set(19,0),set(4,dexId(dex)),set(7,level),set(6,level*4+24),set(5,V(6)),...startBattle()];
+  const wild=(dex,level)=>[set(19,0),set(4,dexId(dex)),set(7,level),...maxHPEvents(dexId(dex),7,6),set(5,V(6)),...startBattle()];
   const gift=(dex,level)=>[set(4,dexId(dex)),set(7,level),...registerPokemon()];
   const challenge=(mode)=>[set(19,mode),set(20,1),...startBattle()];
   const own=dex=>{const i=dexId(dex)-1;return i<8?30+i:400+(i-8)*10;};
