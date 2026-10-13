@@ -1,0 +1,2 @@
+const id='EVENT_KANTO_CALL';
+module.exports={id,name:'Kanto shared script call',description:'Normal native script call. Scene compile references and asset declarations are generated alongside it to keep asset discovery bounded.',groups:['EVENT_GROUP_CONTROL_FLOW'],fields:[{key:'customEventId',type:'customEvent',label:'Script'},{type:'break'}],compile:(input,helpers)=>helpers.callScript(input.customEventId,input)};

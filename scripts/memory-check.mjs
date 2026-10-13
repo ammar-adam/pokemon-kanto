@@ -24,7 +24,7 @@ const scripts=new Map(plan.customScripts.map(s=>[s.id,s]));
 function checkEvents(events,owner){for(const e of events){
   assert.notEqual(e.command,'EVENT_ACTOR_INVOKE','logic uses explicit custom calls; actor invoke can disappear during shared-script export');
   if(owner&&e.args?.actorId&&!['player','$self$'].includes(e.args.actorId))assert.ok(owner.actors[e.args.actorId],'shared actor binding exists');
-  if(e.command==='EVENT_CALL_CUSTOM_EVENT'){
+  if(['EVENT_CALL_CUSTOM_EVENT','EVENT_KANTO_CALL'].includes(e.command)){
     const target=scripts.get(e.args.customEventId);assert.ok(target,'shared script target exists');
     for(const id of Object.keys(target.actors))assert.equal(e.args[`$actor[${id}]$`],id,'scene actor is forwarded');
     for(const id of Object.keys(target.variables))assert.ok(e.args[`$variable[${id}]$`],'shared variable argument exists');

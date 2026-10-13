@@ -85,7 +85,7 @@ class Logic{
         break;
       }
       case 'EVENT_IF':this.body(event.children[this.value(a.condition)?'true':'false']||[]);break;
-      case 'EVENT_CALL_CUSTOM_EVENT':assert.ok(custom.has(a.customEventId));this.body(custom.get(a.customEventId).script);break;
+      case 'EVENT_KANTO_CALL':case 'EVENT_CALL_CUSTOM_EVENT':assert.ok(custom.has(a.customEventId));this.body(custom.get(a.customEventId).script);break;
       case 'EVENT_ACTOR_INVOKE':{
         assert.ok(actors.has(a.actorId));
         this.body(plan.scripts.find(s=>s.target.actorId===a.actorId).events);break;

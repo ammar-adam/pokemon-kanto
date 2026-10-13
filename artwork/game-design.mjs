@@ -20,6 +20,7 @@ import { storyJournal } from './story-journal.mjs';
 import {criticalAuthoring} from './critical-hits.mjs';
 import {playerStatusAuthoring} from './player-status.mjs';
 import { sceneCompilerReferences } from './compiler-references.mjs';
+import {boundScriptCalls} from './bounded-script-calls.mjs';
 import {alignEncounterTerrain} from './native-terrain.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -502,6 +503,7 @@ for(const s of plan.scripts)walkEvents(s.events,e=>{
   }
 });
 alignEncounterTerrain(plan,ids,root);
+boundScriptCalls(plan,{E,N,shared});
 const entities=[...plan.actors,...plan.triggers];
 for(const {root,references} of sceneCompilerReferences(plan)){
   root.events.unshift(E('EVENT_GBVM_SCRIPT',{script:'',references}));

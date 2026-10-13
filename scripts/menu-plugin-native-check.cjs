@@ -31,8 +31,8 @@ require.extensions['.js']=(module,filename)=>filename.startsWith(path.join(vendo
  const fontMeta=JSON.parse(fs.readFileSync(path.join(root,'assets/fonts/bench-mono.png.gbsres')));fontMeta.filename='bench-mono.png';
  const fonts=await compileFonts([fontMeta],root);
  const scene={id:'menu_regression',name:'Menu regression',symbol:'scene_menu_regression',width:20,height:18,type:'TOPDOWN',actors:[],triggers:[],sprites:[],parallax:[],actorsExclusiveLookup:{},projectiles:[]};
- function compile(id,args){
-  const output=[];const builder=new ScriptBuilder(output,{scene,scriptEventHandlers:handlers,fonts,defaultFontId:fontMeta.id});
+ function compile(id,args,options={}){
+  const output=[];const builder=new ScriptBuilder(output,{scene,scriptEventHandlers:handlers,fonts,defaultFontId:fontMeta.id,...options});
   handlers[id].compile(args,{...builder.options,...builder,event:{id:'menu-regression',command:id,args}});
   return {output,locals:builder.localsLookup,localsSize:builder.localsSize};
  }
@@ -64,6 +64,24 @@ require.extensions['.js']=(module,filename)=>filename.startsWith(path.join(vendo
    assert.ok(party.output.some(line=>/VM_POP\s+6/.test(line)));
    assert.ok(party.output.some(line=>new RegExp('VM_OVERLAY_CLEAR\\s+0, 0, 20, '+(items+2)).test(line)));
  }
+ assert.ok(handlers.EVENT_KANTO_CALL,'bounded call loaded by the actual project loader');
+ let boundedCallABI=0;
+ for(const actors of [{},{A0:{id:'A0',name:'Actor'}}])for(const passByReference of [false,true])for(const value of [{type:'variable',value:'14'},{type:'number',value:17}]){
+   const fixture={id:'abi_fixture',name:'ABI fixture',actors,variables:{V0:{id:'V0',name:'Value',passByReference}},script:[]};
+   const options={customEvents:[fixture],compiledCustomEventScriptCache:{'abi_fixture-undefined':{scriptRef:'script_abi_fixture',argsLen:Object.keys(actors).length+1}}};
+   const args={customEventId:'abi_fixture','$actor[A0]$':'player','$variable[V0]$':value};
+   assert.deepEqual(compile('EVENT_KANTO_CALL',args,options),compile('EVENT_CALL_CUSTOM_EVENT',args,options),'native actor/value/reference call ABI preserved');boundedCallABI++;
+ }
+ const loadResources=require(path.join(vendor,'src/lib/project/loadProjectResources.ts')).loadProjectResources;
+ const decompress=require(path.join(vendor,'src/shared/lib/resources/compression.ts')).decompressProjectResources;
+ const determineUsedAssets=require(path.join(vendor,'src/lib/compiler/precompile/determineUsedAssets.ts')).determineUsedAssets;
+ const resources=await loadResources(root,JSON.parse(fs.readFileSync(path.join(root,'project.gbsproj'))));
+ const project=decompress(resources),assetStart=Date.now();
+ const used=determineUsedAssets({projectData:project,customEventsLookup:Object.fromEntries(project.scripts.map(s=>[s.id,s])),scriptEventHandlers:handlers,warnings:message=>{throw new Error(message);}});
+ assert.equal(used.referencedVariables.length,1664,'actual native asset walker preserves the variable budget');
+ const requiredSprites=new Set(); const collectSpriteRefs=value=>{if(!value||typeof value!=='object')return;for(const [key,item]of Object.entries(value)){if(key==='spriteSheetId'&&typeof item==='string'&&item)requiredSprites.add(item);else if(typeof item==='object')collectSpriteRefs(item);}}; collectSpriteRefs(project.scripts);collectSpriteRefs(project.scenes);assert.ok(requiredSprites.size>=151,'all species sprite resources referenced');for(const id of requiredSprites)assert.ok(used.referencedSprites.some(s=>s.id===id),'native asset walker retains referenced sprite '+id);
+ const assetDiscoveryMs=Date.now()-assetStart;assert.ok(assetDiscoveryMs<30000,'actual asset discovery completes within thirty seconds');
+ console.log(JSON.stringify({boundedCallABI,assetDiscoveryMs,variables:used.referencedVariables.length,sprites:used.referencedSprites.length,requiredSprites:requiredSprites.size}));
  for(const h of Object.values(handlers))h.cleanup();
  console.log(JSON.stringify({passed:true,compiler:'GB Studio 4.3.2',scope:'actual project loader, QuickJS plugin, real ScriptBuilder',scoped,dialogue,indirectAndCancelCases:matrix,storedMoves:true,ownedPartySizes:6,nativeBuild:false,runtime:false}));
 })().catch(error=>{console.error(error);process.exitCode=1;});

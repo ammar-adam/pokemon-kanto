@@ -47,7 +47,7 @@ class Logic {
     case 'EVENT_IF':this.body(e.children[this.val(a.condition)?'true':'false']||[]);break;
     case 'EVENT_KANTO_PARTY_MENU':case 'EVENT_KANTO_MOVE_MENU':case 'EVENT_KANTO_MENU':case 'EVENT_MENU':{assert.ok(this.choices.length,'expected a supplied menu choice');const choice=this.choices.shift();assert.ok(choice>=0 && choice<=(a.items||4));this.v[a.variable]=choice;break;}
     case 'EVENT_ACTOR_INVOKE':this.body(byId[a.actorId].script);break;
-    case 'EVENT_CALL_CUSTOM_EVENT':assert.ok(byId[a.customEventId],'shared script exists');this.body(byId[a.customEventId].script);break;
+    case 'EVENT_KANTO_CALL':case 'EVENT_CALL_CUSTOM_EVENT':assert.ok(byId[a.customEventId],'shared script exists');this.body(byId[a.customEventId].script);break;
     case 'EVENT_GOTO_LABEL':throw new Halt('goto',a.label);
     case 'EVENT_SWITCH_SCENE':throw new Halt('switch',a);
     case 'EVENT_SCENE_POP_STATE':throw new Halt('pop',a);

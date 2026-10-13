@@ -124,9 +124,9 @@ function initializedActors(scene,actors,variables) {
       if(event.command==='EVENT_IF') {
         const condition=args.condition;
         assert.equal(condition.type,'eq');
-        assert.equal(condition.valueA.type,'variable');
+        assert.ok(['variable','number'].includes(condition.valueA.type));
         assert.equal(condition.valueB.type,'number');
-        run(event.children[(variables[condition.valueA.value]||0)===condition.valueB.value?'true':'false']||[]);
+        run(event.children[(condition.valueA.type==='number'?condition.valueA.value:(variables[condition.valueA.value]||0))===condition.valueB.value?'true':'false']||[]);
       } else if(event.command==='EVENT_ACTOR_SET_POSITION') {
         const actor=state.find(a=>a.id===args.actorId);
         assert.ok(actor);assert.equal(args.units,'tiles');

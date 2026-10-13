@@ -5,7 +5,7 @@ import {sceneCompilerReferences} from '../artwork/compiler-references.mjs';
 const plan=JSON.parse(readFileSync(new URL('../artwork/game-plan.json',import.meta.url),'utf8'));
 const scripts=new Map(plan.customScripts.map(s=>[s.id,s]));
 const calls=events=>events.flatMap(e=>[
-  ...(e.command==='EVENT_CALL_CUSTOM_EVENT'?[e.args.customEventId]:[]),
+  ...(['EVENT_CALL_CUSTOM_EVENT','EVENT_KANTO_CALL'].includes(e.command)?[e.args.customEventId]:[]),
   ...Object.values(e.children||{}).flatMap(calls)
 ]);
 let references=0;
